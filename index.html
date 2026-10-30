@@ -774,7 +774,7 @@ async function shoot(ch){
   if(!step)return;
   if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的「'+step.label.replace('濕的','')+'」範本');
   const st=chainState(rec,ch,now);
-  if(rec.hookAt&&st.earliest&&now<st.earliest)return toast(step.wet?`才剛開始洗，${Math.ceil((st.earliest-now)/MIN)} 分鐘後再拍地板才會起霧`:`再等 ${Math.ceil((st.earliest-now)/MIN)} 分鐘`);
+  if(rec.hookAt&&st.earliest&&now<st.earliest)return toast(step.wet?`才剛開始洗，${Math.ceil((st.earliest-now)/MIN)} 分鐘後再拍地板`:`再等 ${Math.ceil((st.earliest-now)/MIN)} 分鐘`);
   await cameraFlow({title:(rec.hookAt?'收線：':'上鉤：')+step.label,hint:step.hint,round:!!step.cup,deadline:rec.hookAt?st.deadline:atTime(d,rec.target)+HOOK_LATE*MIN,tpl:step.tpl?spotObj().tpl[step.k]:step.opt?spotObj().tpl?.[step.opt]:null,
     onShot:(sig)=>{
       const fresh=loadToday(Date.now());const r=fresh.rec||rec;r.date=d;
