@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0245';
+const APP_VERSION='2026.10.31-0246';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -667,7 +667,7 @@ function baitPicker(forWhat,bait){
   const opt=c=>`<button class="bait ${bait.includes(c)?'on':''}" data-bait="${c}" data-for="${forWhat}"><b>${CHAINS[c].name}</b><span>${CHAINS[c].short}</span></button>`;
   return `<h2>${forWhat==='today'?'今天的魚餌':'明天的魚餌'}</h2><div class="grid2">${opt('shower')}${opt('coffee')}${opt('water')}</div><p class="dim" style="margin:8px 0 0">${bait.length>1?'⭐ 雙餌中：上鉤後 60 分鐘內兩條都收完，多釣一條魚':'點兩種就是雙餌，多一條魚'}・魚餌＝早上要拍的路線</p>`;
 }
-function toggleBait(c,forWhat){
+function toggleBait(c,forWhat){sfx('tap');
   let b=[...S.bait];
   if(b.includes(c)){if(b.length===1)return toast('至少要一種魚餌');b=b.filter(x=>x!==c)}
   else{b.push(c);if(b.length>2)b.shift()}
@@ -865,7 +865,7 @@ async function cameraFlow({title,hint,round,deadline,tpl,onShot,register}){
     if(register){register(sig);return}
     const {res,commit}=onShot(sig);
     if(res.ok){sfx('click');commit();return}
-    $('#camMsg').textContent=res.why;
+    $('#camMsg').textContent=res.why;sfx('fail');
     const {d}=loadToday(Date.now()), left=MANUAL_PER_WEEK-weekManualCount(d);
     $('#camAlt').innerHTML=res.noTpl?'':`<button class="btn ghost" id="manualOk" ${left<=0?'disabled':''}>我確定拍對了，算過（本週剩 ${Math.max(0,left)} 次）</button>`;
     $('#manualOk')?.addEventListener('click',()=>{S.manualLog=[...(S.manualLog||[]),d];save();commit()});
@@ -960,13 +960,26 @@ function playBgm(kind){
   curBgm=kind;BGM[kind].play().catch(()=>{});
 }
 function stopBgm(){Object.values(BGM).forEach(a=>a.pause());curBgm=null}
-function playJingle(){if(!unlocked||!musicOn())return;const k=curBgm;stopBgm();JINGLE.currentTime=0;JINGLE.play().catch(()=>{});setTimeout(()=>playBgm(k||wantBgm),5600)}
+function playJingle(){if(!musicOn())return sfx('catch');if(!unlocked)return;const k=curBgm;stopBgm();JINGLE.currentTime=0;JINGLE.play().catch(()=>{});setTimeout(()=>playBgm(k||wantBgm),5600)}
 function syncMusBtn(){$('#musBtn').classList.toggle('off',!musicOn());$('#musBtn').setAttribute('aria-label',musicOn()?'背景音樂：開':'背景音樂：關')}
 document.addEventListener('pointerdown',()=>{if(unlocked)return;unlocked=true;playBgm(wantBgm)},{once:false,capture:true});
 $('#musBtn').onclick=e=>{S.music=!musicOn();save();syncMusBtn();if(musicOn()){unlocked=true;curBgm=null;playBgm(wantBgm)}else stopBgm()};
 
 // ───────── 音效 ─────────
-let ac;function sfx(kind){if(S?.sound===false)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const notes=kind==='catch'?[523,659,784,1047]:kind==='hook'?[392,523]:[880];notes.forEach((hz,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=hz;g.gain.setValueAtTime(.06,ac.currentTime+i*.09);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+i*.09+.12);o.connect(g).connect(ac.destination);o.start(ac.currentTime+i*.09);o.stop(ac.currentTime+i*.09+.13)})}catch(e){}}
+// 音效：先合成成 WAV，用 <audio> 播（跟配樂同一個聲道；iPhone 靜音模式下 Web Audio 會被消音）
+const SFX_DEF={click:[[880,.06]],tap:[[660,.04]],hook:[[392,.09],[523,.12]],fail:[[220,.1],[185,.16]],catch:[[523,.09],[659,.09],[784,.09],[1047,.18]]};
+const SFX={};
+function wav(notes){
+  const sr=22050,len=notes.reduce((a,[,d])=>a+d,0)+.05,n=Math.floor(sr*len),buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const w=(o,t)=>[...t].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  let t0=0,i=0;for(const[hz,d]of notes){const m=Math.floor(sr*d);for(let k=0;k<m&&i<n;k++,i++){const env=Math.min(1,k/80)*Math.pow(1-k/m,1.5);v.setInt16(44+i*2,((k*hz/sr)%1<.5?1:-1)*env*5200,true)}t0+=d}
+  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+}
+function sfx(kind){
+  if(S?.sound===false||!SFX_DEF[kind])return;
+  try{if(!SFX[kind]){SFX[kind]=new Audio(wav(SFX_DEF[kind]));SFX[kind].volume=.7}const a=SFX[kind];a.currentTime=0;a.play().catch(()=>{})}catch(e){}
+}
 
 // ───────── 圖鑑 ─────────
 const HAB={stream:'<svg class="hab" viewBox="0 0 6 6" shape-rendering="crispEdges" aria-hidden="true"><path fill="#8E9BB0" d="M1 3h3v2H1zM4 2h2v2H4z"/><path fill="#B9C4D6" d="M1 3h1v1H1z"/></svg>',sea:'<svg class="hab" viewBox="0 0 6 6" shape-rendering="crispEdges" aria-hidden="true"><path fill="#4AA3DF" d="M0 3h2v1H0zM2 2h2v1H2zM4 3h2v1H4zM0 5h6v1H0z"/></svg>'};
@@ -1040,7 +1053,7 @@ function tryTpl(k){
     const sim=similarity(sig,tpl), need=k==='floor'?.45:OPT_TPL.some(o=>o[0]===k)?.5:.55;
     let msg=sig.lum<18?'太暗了，開燈再拍':sim>=need?`✓ 會過（相似度 ${Math.round(sim*100)}，要 ${Math.round(need*100)} 以上）`:`✗ 不會過（相似度 ${Math.round(sim*100)}，要 ${Math.round(need*100)} 以上）`;
     if(k==='floor'&&sim>=need)msg+=(sig.lum<=tpl.lum*.93||sig.sharp>=tpl.sharp*1.25)?'・地板是濕的 ✓':`・地板是乾的，洗完澡才會過（亮度 ${Math.round(sig.lum/tpl.lum*100)}%，要 93% 以下）`;
-    $('#camMsg').textContent=msg;sfx(sim>=need?'hook':'click');
+    $('#camMsg').textContent=msg;sfx(sim>=need?'hook':'fail');
   }});
 }
 function registerTpl(k,after){
