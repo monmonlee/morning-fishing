@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0257';
+const APP_VERSION='2026.10.31-0258';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -607,7 +607,7 @@ function renderToday(){
   if(!busy)h=readyBlock(d)+backupBlock(d)+h;
   h+=weekBlock(d)+trendBlock(d);
   v.innerHTML=h;
-  v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData()});
+  v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData();else if(g==='safari'){S.safariOk=true;save();renderToday();toast('好，之後都從 Safari 玩')}});
   // 放上像素魚
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
   v.querySelectorAll('[data-bait]').forEach(b=>b.onclick=()=>toggleBait(b.dataset.bait,b.dataset.for));
@@ -626,7 +626,7 @@ function renderToday(){
 const isStandalone=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
 function readyBlock(d){
   const items=[];
-  if(!isStandalone())items.push(['加到主畫面','Safari →「分享」→「加入主畫面」，之後從圖示打開','home','怎麼做']);
+  if(!isStandalone()&&!S.safariOk)items.push(['加到主畫面','或者固定用 Safari 玩（要用捷徑自動打開的話選這個）','home','怎麼做'],['固定用 Safari 玩','鬧鐘停止自動打開晨釣，只能開在 Safari','safari','就用 Safari']);
   if(S.bait.includes('shower')&&!hasShowerTpl()){const miss=SHOWER_TPL.filter(([k])=>!spotObj().tpl?.[k]).map(t=>t[1]);items.push(['洗澡路線還差範本','還沒登記：'+miss.join('、'),'set','去登記'])}
   if(!S.alarmOk)items.push(['iPhone 鬧鐘',`設 ${targetFor(ymd(addDays(parseYmd(d),1)))} 一顆、關掉貪睡、手機放遠一點`,'alarm','設好了']);
   if(!items.length)return '';
