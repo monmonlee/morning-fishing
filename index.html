@@ -284,7 +284,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 <div class="wrap">
   <header class="top">
     <div class="logo">晨釣</div>
-    <div class="hdr-r"><button class="mus" id="musBtn" aria-label="背景音樂"><svg viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#DCE9EE" d="M5 1h6v2H7v6H6V3H5zM3 8h3v3H3zM2 9h1v1H2zM9 7h2v2H9z"/><path fill="#DCE9EE" d="M10 3h1v5h-1z"/></svg></button><button class="chip" id="spotChip">釣點：家</button></div>
+    <div class="hdr-r"><button class="mus" id="helpBtn" aria-label="玩法說明"><span class="px" style="font-size:12px;color:#DCE9EE">?</span></button><button class="mus" id="musBtn" aria-label="背景音樂"><svg viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#DCE9EE" d="M5 1h6v2H7v6H6V3H5zM3 8h3v3H3zM2 9h1v1H2zM9 7h2v2H9z"/><path fill="#DCE9EE" d="M10 3h1v5h-1z"/></svg></button><button class="chip" id="spotChip">釣點：家</button></div>
   </header>
 
   <main id="viewToday"></main>
@@ -305,7 +305,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0231';
+const APP_VERSION='2026.10.31-0241';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -596,8 +596,11 @@ function renderToday(){
   else if(now>T+HOOK_LATE*MIN&&S.created===d) h+=`<section class="hero"><div class="label">歡迎來到晨釣</div><div class="big" style="font-size:20px;line-height:1.6">今天的魚已經游走了，<br>明天早上見。</div></section>`+tomorrowBlock(d);
   else if(now>T+HOOK_LATE*MIN) h+=missedBlock(d,target)+tomorrowBlock(d);
   else h+=beforeBlock(d,target);
-  h+=weekBlock(d);
+  const busy=rec?.hookAt&&!rec.final || (!rec?.final&&now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN);
+  if(!busy)h=readyBlock(d)+backupBlock(d)+h;
+  h+=weekBlock(d)+trendBlock(d);
   v.innerHTML=h;
+  v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData()});
   // 放上像素魚
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
   v.querySelectorAll('[data-bait]').forEach(b=>b.onclick=()=>toggleBait(b.dataset.bait,b.dataset.for));
@@ -612,9 +615,50 @@ function renderToday(){
   const live=rec?.hookAt&&!rec.final || (!rec?.final&&now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN+1000);
   if(live)tick=setInterval(()=>{if(!$('#ov').hidden)return;const n=Date.now();v.querySelectorAll('[data-until]').forEach(el=>{const ms=Math.max(0,+el.dataset.until-n);el.textContent=`${pad(Math.floor(ms/60000))}:${pad(Math.floor(ms/1000)%60)}`;if(ms===0)renderToday()})},500);
 }
+// 準備清單：還沒弄好的才出現，全部好了就消失
+const isStandalone=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+function readyBlock(d){
+  const items=[];
+  if(!isStandalone())items.push(['加到主畫面','Safari →「分享」→「加入主畫面」，之後從圖示打開','home','怎麼做']);
+  if(S.bait.includes('shower')&&!hasShowerTpl()){const miss=SHOWER_TPL.filter(([k])=>!spotObj().tpl?.[k]).map(t=>t[1]);items.push(['洗澡路線還差範本','還沒登記：'+miss.join('、'),'set','去登記'])}
+  if(!S.alarmOk)items.push(['iPhone 鬧鐘',`設 ${targetFor(ymd(addDays(parseYmd(d),1)))} 一顆、關掉貪睡、手機放遠一點`,'alarm','設好了']);
+  if(!items.length)return '';
+  return `<h2>開始前的準備 <span class="dim">${items.length} 件</span></h2><div style="display:flex;flex-direction:column;gap:8px">${items.map(([t,sub,go,btn])=>`<div class="tplrow"><div class="t">${t}<div class="dim">${sub}</div></div><button data-go="${go}">${btn}</button></div>`).join('')}</div>`;
+}
+function daysBetween(a,b){return Math.round((parseYmd(b)-parseYmd(a))/864e5)}
+function backupBlock(d){
+  const since=S.lastBackup?daysBetween(S.lastBackup,d):daysBetween(S.created||d,d);
+  if(S.lastBackup?since<14:since<3)return '';
+  return `<div class="tplrow" style="margin-top:12px;border-color:var(--accent)"><div class="t">${S.lastBackup?`${since} 天沒備份了`:'還沒備份過'}<div class="dim">資料只存在這支手機，換手機或清 Safari 就會不見</div></div><button data-go="backup">備份</button></div>`;
+}
+function showHomeHelp(){
+  showOv(`<div class="ovhead"><b>加到主畫面</b><button class="x" id="hhX" aria-label="關閉">×</button></div>
+  <div class="card" style="line-height:1.9;font-size:15px">① 用 <b>Safari</b> 打開這個網址<br>② 按下方中間的「分享」（方框加箭頭）<br>③ 往下滑，選「加入主畫面」<br>④ 之後都從主畫面的晨釣圖示打開</div>
+  <p class="dim">從主畫面打開和從 Safari 分頁打開，資料是分開的。已經在 Safari 玩過的話，先在設定「匯出備份」，再到主畫面版「匯入備份」。</p>`);
+  $('#hhX').onclick=hideOv;
+}
+// 起床時間趨勢：最近 28 天
+function trendBlock(d){
+  const days=[...Array(28)].map((_,i)=>ymd(addDays(parseYmd(d),i-27)));
+  const pts=days.map((day,i)=>{const r=getDay(day),t=r?.hookAt||r?.wakeAt;if(!t)return null;const x=new Date(t);return {i,m:x.getHours()*60+x.getMinutes(),hit:!!r.hookAt,tg:(r.target||targetFor(day)).split(':').reduce((a,b)=>a*60+ +b)}}).filter(Boolean);
+  if(pts.length<2)return `<h2>起床時間趨勢</h2><div class="card dim">記錄兩天以上就會出現：平均幾點起床、每天差多少。</div>`;
+  const ms=pts.map(p=>p.m), avg=ms.reduce((a,b)=>a+b,0)/ms.length, sd=Math.sqrt(ms.reduce((a,b)=>a+(b-avg)**2,0)/ms.length);
+  const lo=Math.min(...ms,...pts.map(p=>p.tg))-20, hi=Math.max(...ms,...pts.map(p=>p.tg))+20;
+  const W=336,H=140,X=i=>8+i*(W-16)/27,Y=m=>8+(m-lo)/(hi-lo)*(H-16);
+  const fmt=m=>`${pad(Math.floor(m/60))}:${pad(Math.round(m%60))}`;
+  const tgLine=pts.map(p=>`<rect x="${X(p.i)-5}" y="${Y(p.tg)-1}" width="10" height="2" fill="#4A6690"/>`).join('');
+  const path=pts.map((p,k)=>`${k?'L':'M'}${X(p.i).toFixed(1)} ${Y(p.m).toFixed(1)}`).join(' ');
+  const dots=pts.map(p=>`<rect x="${X(p.i)-4}" y="${Y(p.m)-4}" width="8" height="8" fill="${p.hit?'#F2A65A':'#E5533D'}"/>`).join('');
+  const hits=pts.filter(p=>p.hit).length;
+  const word=sd<=15?'很穩 ✓':sd<=30?'還算穩':'起伏有點大';
+  return `<h2>起床時間趨勢 <span class="dim">最近 28 天</span></h2>
+  <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card"><div class="dim">平均起床</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(avg)}</div></div><div class="card"><div class="dim">每天差多少</div><div class="px" style="font-size:15px;margin-top:6px">±${Math.round(sd)}分</div></div><div class="card"><div class="dim">準時</div><div class="px" style="font-size:15px;margin-top:6px">${hits}/${pts.length}</div></div></div>
+  <div class="card" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="最近 28 天起床時間" shape-rendering="crispEdges"><text x="8" y="12" fill="#8E9BB0" font-size="9">${fmt(lo+20)}</text><text x="8" y="${H-4}" fill="#8E9BB0" font-size="9">${fmt(hi-20)}</text>${tgLine}<path d="${path}" fill="none" stroke="#4A6690" stroke-width="2" shape-rendering="auto"/>${dots}</svg>
+  <div class="dim">越往上越早起・橘點＝準時上鉤、紅點＝晚了・灰線＝當天目標。穩定度：<b style="color:var(--text)">${word}</b>（研究上「每天一樣」比「多早」重要）</div></div>`;
+}
 function baitPicker(forWhat,bait){
   const opt=c=>`<button class="bait ${bait.includes(c)?'on':''}" data-bait="${c}" data-for="${forWhat}"><b>${CHAINS[c].name}</b><span>${CHAINS[c].short}</span></button>`;
-  return `<h2>${forWhat==='today'?'今天的魚餌':'明天的魚餌'}<span class="dim">　選兩種＝雙餌，多一條魚</span></h2><div class="grid2">${opt('shower')}${opt('coffee')}${opt('water')}<div class="bait combo ${bait.length>1?'on':''}" style="${bait.length>1?'':'opacity:.6'}"><b>${bait.length>1?'雙餌中':'雙餌'}</b><span>60 分鐘內兩條都收完＝多一條魚</span></div></div>`;
+  return `<h2>${forWhat==='today'?'今天的魚餌':'明天的魚餌'}</h2><div class="grid2">${opt('shower')}${opt('coffee')}${opt('water')}</div><p class="dim" style="margin:8px 0 0">${bait.length>1?'⭐ 雙餌中：上鉤後 60 分鐘內兩條都收完，多釣一條魚':'點兩種就是雙餌，多一條魚'}・魚餌＝早上要拍的路線</p>`;
 }
 function toggleBait(c,forWhat){
   let b=[...S.bait];
@@ -669,8 +713,7 @@ function windowBlock(d,target,T,now){
   <div class="countdown" style="--gem:${[GEM[3],GEM[2],GEM[1]][on]}" data-until="${dl}">--:--</div><div class="sub">${target} 鬧鐘 · ${hm(dl)} 前拍下第一張</div></section>
   <div class="tiers">${[['0–1 分','稀有 ×2',GEM[3]],['1–2 分','一般魚',GEM[2]],['2–3 分','小魚',GEM[1]]].map(([a,b,c],i)=>`<div class="${on===i?'on':''}" style="--gem:${c}">${gemSvg(c)}<span>${a}<br>${b}</span></div>`).join('')}</div>
   ${pondHTML(true,SHADOW_FISH)}
-  <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">${needTpl?'<div class="warn">洗澡路線還沒登記範本，先改用咖啡或水</div>':''}${firstSteps(S.bait.filter(c=>c!=='shower'||!needTpl))}</div>
-  ${baitPicker('today',S.bait)}`;
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">${needTpl?'<div class="warn">洗澡路線還沒登記範本，先改用咖啡或水</div>':''}${firstSteps(S.bait.filter(c=>c!=='shower'||!needTpl))}</div>`;
 }
 function reelBlock(rec,now){
   const T=atTime(rec.date,rec.target);
@@ -1009,9 +1052,11 @@ function addSpot(){
 function exportData(){
   const all={app:'morning-fishing',v:1,at:new Date().toISOString(),data:{}};
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);all.data[k]=store.get(k)}
-  const blob=new Blob([JSON.stringify(all)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`晨釣備份-${ymd(new Date())}.json`;a.click();
-  S.lastBackup=ymd(new Date());save();setTimeout(renderSet,300);
+  const name=`晨釣備份-${ymd(new Date())}.json`, blob=new Blob([JSON.stringify(all)],{type:'application/json'});
+  const done=()=>{S.lastBackup=ymd(new Date());save();toast('備份好了');if(!$('#viewSet').hidden)renderSet();else renderToday()};
+  const file=new File([blob],name,{type:'application/json'});
+  if(navigator.canShare?.({files:[file]})){navigator.share({files:[file]}).then(done).catch(e=>{if(e.name!=='AbortError')toast('備份失敗，再試一次')});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();done();
 }
 $('#importFile').onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
@@ -1058,6 +1103,10 @@ function showTab(t){setPhase();
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $('#spotChip').onclick=()=>showTab('Set');
+$('#helpBtn').onclick=()=>{showOv(`<div class="ovhead"><b>玩法</b><button class="x" id="hpX" aria-label="關閉">×</button></div>
+  <div class="card" style="line-height:1.9;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤（這就是你的起床時間）<br>② 照順序拍完路線＝把魚釣起來；每一步有時限，超時魚會脫鉤<br>③ 越早上鉤魚越稀有；兩條路線都完成（雙餌）多一條魚<br>④ 沒起來不扣分，今天的魚跑了而已；不要連續兩天就好</div>
+  <h2>名詞</h2><div class="card" style="line-height:1.9;font-size:14px"><b>魚餌</b>＝早上要拍的路線（洗澡／咖啡／水）<br><b>釣點</b>＝你在哪裡（家、飯店），決定用哪組範本和魚種<br><b>範本</b>＝先拍一次的參考照，之後拿來比對<br><b>壞夜卡</b>＝睡不好時用，一樣要準時起，但收線時限放寬<br><b>手動算過</b>＝明明拍對卻不過時用，一週 2 次</div>
+  <h2>路線</h2><div class="card" style="line-height:1.9;font-size:14px">${Object.values(CHAINS).map(c=>`<b>${c.name}</b>：${c.steps.map(x=>x.label).join(' → ')}`).join('<br>')}</div>`);$('#hpX').onclick=hideOv};
 let latest=null;
 async function checkUpdate(){
   if(APP_VERSION==='dev')return;
