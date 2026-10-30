@@ -305,7 +305,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0220';
+const APP_VERSION='2026.10.31-0224';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -335,9 +335,9 @@ const COMBO_GAP=10;    // 雙餌：收完一條後 10 分鐘內要開始下一�
 const BAD_PER_MONTH=2, MANUAL_PER_WEEK=2;
 // after:[最少, 最多] 分鐘（相對同一條線的上一張）
 const CHAINS={
-  shower:{name:'洗澡',short:'浴巾→蓮蓬頭→霧鏡',steps:[
+  shower:{name:'洗澡',short:'浴巾→藍色三角→霧鏡',steps:[
     {k:'towel',label:'浴巾',tpl:true,hint:'對準你的浴巾'},
-    {k:'head',label:'正在出水的蓮蓬頭',tpl:true,after:[0,3],hint:'手機放洗手台，拍出水的蓮蓬頭'},
+    {k:'tri',label:'門上的藍色三角形',tpl:true,after:[0,3],hint:'站進淋浴間，從裡面往外拍門上的藍色三角形'},
     {k:'mirror',label:'起霧的鏡子',tpl:true,fog:true,after:[10,30],hint:'洗完澡，拍起霧的鏡子'}]},
   coffee:{name:'咖啡',short:'滿杯→空杯',steps:[
     {k:'full',label:'滿杯咖啡',cup:'full',opt:'cup',hint:'杯口放進圓框裡'},
@@ -346,7 +346,7 @@ const CHAINS={
     {k:'cup',label:'一杯水或瓶裝水',opt:'bottle',hint:'拍你的水杯或水瓶'},
     {k:'wempty',label:'喝完的空杯／空瓶',after:[1,30],hint:'喝完再拍'}]}
 };
-const SHOWER_TPL=[['towel','浴巾','平常掛的地方'],['head','正在出水的蓮蓬頭','打開水，從洗手台的位置拍'],['mirror','浴室鏡子（沒起霧）','現在就拍，之後拿來比對有沒有起霧']];
+const SHOWER_TPL=[['towel','浴巾','平常掛的地方'],['tri','門上的藍色三角形','站進淋浴間，從裡面往外拍，每次站差不多的位置'],['mirror','浴室鏡子（沒起霧）','現在就拍，之後拿來比對有沒有起霧']];
 const OPT_TPL=[['cup','咖啡杯（裝滿的）','拍你平常用的杯子；登記後換別的杯子就不算'],['bottle','水杯或水瓶','選填；沒登記就只看有沒有拍']];
 const TPL_STEPS=[...SHOWER_TPL,...OPT_TPL];
 const TPL_GROUPS=[['洗澡','必登記才能用洗澡路線',SHOWER_TPL],['咖啡','選填：登記了就會比對是不是你的杯子',[OPT_TPL[0]]],['水','選填',[OPT_TPL[1]]]];
