@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0258';
+const APP_VERSION='2026.10.31-0300';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -819,7 +819,8 @@ async function shoot(ch){
   const now=Date.now();let {d,rec}=loadToday(now);
   if(!rec){rec=Object.assign(newDay(d),{date:d})}
   if(rec.final)return renderToday();
-  if(!rec.hookAt){rec.bait=[...S.bait];if(!rec.bait.includes(ch))rec.bait=[ch]}
+  // 範本沒登記齊的洗澡線不算進今天，免得另一條收完還要等它逾時
+  if(!rec.hookAt){rec.bait=S.bait.filter(c=>c!=='shower'||hasShowerTpl());if(!rec.bait.includes(ch))rec.bait=[ch]}
   const def=CHAINS[ch], n=chainShots(rec,ch).length, step=def.steps[n];
   if(!step)return;
   if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的「'+step.label.replace('濕的','')+'」範本');
