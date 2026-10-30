@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0246';
+const APP_VERSION='2026.10.31-0252';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -886,46 +886,59 @@ function showCatch({f,isNew},rec){
 // ───────── 分享圖（IG 限動 1080×1920）─────────
 function wrapText(ctx,text,x,y,maxW,lh){let line='';for(const ch of text){if(ctx.measureText(line+ch).width>maxW){ctx.fillText(line,x,y);line=ch;y+=lh}else line+=ch}ctx.fillText(line,x,y);return y}
 async function fontsReady(){try{await document.fonts.load('40px "Press Start 2P"');await document.fonts.load('700 40px "Noto Sans TC"')}catch(e){}}
+// 分享圖的共用小零件
+function skyBands(x){[['#1A2340',0,150],['#4B3F72',150,200],['#C9707A',200,228],['#F2A65A',228,244]].forEach(([c,a,b])=>{x.fillStyle=c;x.fillRect(0,a,1080,b-a)})}
+function pxWave(x,x0,y,w,c){x.fillStyle=c;for(let i=0;i<w;i+=32){x.fillRect(x0+i,y+4,8,4);x.fillRect(x0+i+8,y,8,4);x.fillRect(x0+i+16,y+4,8,4);x.fillRect(x0+i+24,y+8,8,4)}}
+function rivets(x,x0,y0,w,h){x.fillStyle='#8E9BB0';[[x0+10,y0+10],[x0+w-18,y0+10],[x0+10,y0+h-18],[x0+w-18,y0+h-18]].forEach(([a,b])=>x.fillRect(a,b,8,8))}
+function sparkle(x,cx,cy){x.fillStyle='#FFD58A';x.fillRect(cx-12,cy-4,24,8);x.fillRect(cx-4,cy-12,8,24);x.fillStyle='#FFF6D5';x.fillRect(cx-4,cy-4,8,8)}
+// 一張魚卡（一條、兩條用同一套欄位）
+function drawFishCard(x,f,y0,H,tankH){
+  const stars=f?fishStars(f):0, gem=f?GEM[stars]:'#4A6690';
+  x.fillStyle=gem;x.fillRect(64,y0-16,952,H+32);x.fillStyle='#14223A';x.fillRect(76,y0-4,928,H+8);
+  x.fillStyle='#F4F1EA';x.fillRect(84,y0+4,912,H-8);rivets(x,84,y0+4,912,H-8);
+  const tx=120,tw=840,ty=y0+40;
+  x.fillStyle='#2F7C93';x.fillRect(tx,ty,tw,tankH);x.fillStyle='#1E4E66';x.fillRect(tx,ty+tankH*.2,tw,tankH*.8);pxWave(x,tx,ty+tankH*.2-6,tw,'#8FD3D9');
+  x.strokeStyle='#8FD3D9';x.lineWidth=3;[[.2,.85],[.5,.7],[.82,.8]].forEach(([a,b])=>x.strokeRect(tx+tw*a,ty+tankH*b,10,10));
+  const cell=Math.floor(Math.min(28,tankH/12)), by=ty+tankH+70;
+  if(f){
+    drawFishOn(x,f,540,ty+tankH*.58,cell);
+    if(stars>=3)[[tx+80,ty+tankH*.35],[tx+tw-80,ty+tankH*.4],[tx+140,ty+tankH*.82],[tx+tw-150,ty+tankH*.78]].forEach(([a,b])=>sparkle(x,a,b));
+    x.fillStyle='#14223A';x.font='700 58px "Noto Sans TC"';x.fillText(fishName(f),tx,by);
+    x.fillStyle='#7A3A8C';x.font='700 34px "Noto Sans TC"';x.fillText('★'.repeat(stars)+' '+STAR_WORD[stars]+(f.big?' · 週日大魚':''),tx,by+52);
+    x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';const yEnd=wrapText(x,sp(f.sp).desc+(TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''),tx,by+104,tw,46);
+    const ay=yEnd+64;[['魚種',sp(f.sp).name],['花紋',pat(f.pat).name],['特徵',tr(f.trait).name],['體長',f.cm+' cm']].forEach(([k,v],i)=>{const ax=tx+i*210;x.fillStyle='#5A6A7E';x.font='26px "Noto Sans TC"';x.fillText(k,ax,ay);x.fillStyle='#14223A';x.font='700 32px "Noto Sans TC"';x.fillText(v,ax,ay+40)});
+  }else{
+    x.strokeStyle='#9CC3D3';x.lineWidth=8;x.beginPath();x.ellipse(540,ty+tankH*.6,90,22,0,0,7);x.stroke();x.globalAlpha=.4;x.beginPath();x.ellipse(540,ty+tankH*.6,170,44,0,0,7);x.stroke();x.globalAlpha=1;
+  }
+}
 async function dayImage(rec){
   await fontsReady();
   const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
-  x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);
-  x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,150);
-  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText(md(rec.date),80,220);
+  x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);skyBands(x);
+  x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,100);
+  x.fillStyle='#DCE9EE';x.font='40px "Noto Sans TC"';x.fillText(md(rec.date)+(rec.fish.length>1?'　雙餌 ×'+rec.fish.length:''),80,140);
   const fish=rec.fish.length?rec.fish:[null];
-  const H=fish.length>1?640:1100, gap=60;
-  fish.forEach((f,i)=>{
-    const y0=300+i*(H+gap);
-    x.fillStyle='#F4F1EA';x.fillRect(80,y0,920,H);x.strokeStyle='#F2A65A';x.lineWidth=12;x.strokeRect(74,y0-6,932,H+12);
-    const tankH=fish.length>1?280:520;
-    x.fillStyle='#24607A';x.fillRect(120,y0+40,840,tankH);
-    if(f){drawFishOn(x,f,540,y0+40+tankH/2,fish.length>1?20:28);
-      x.fillStyle='#14223A';x.font='700 64px "Noto Sans TC"';x.fillText(fishName(f),120,y0+tankH+130);
-      x.fillStyle='#B5452F';x.font='700 38px "Noto Sans TC"';x.fillText('★'.repeat(fishStars(f))+' '+STAR_WORD[fishStars(f)]+' · '+f.cm+' cm',120,y0+tankH+190);
-      if(fish.length===1){x.fillStyle='#3A4A5E';x.font='38px "Noto Sans TC"';wrapText(x,sp(f.sp).desc+(TRAIT_LINE[f.trait]||''),120,y0+tankH+270,840,58)}
-    }else{
-      x.strokeStyle='#9CC3D3';x.lineWidth=8;x.beginPath();x.ellipse(540,y0+40+tankH/2,90,22,0,0,7);x.stroke();
-      x.globalAlpha=.4;x.beginPath();x.ellipse(540,y0+40+tankH/2,170,44,0,0,7);x.stroke();x.globalAlpha=1;
-      x.fillStyle='#14223A';x.font='700 64px "Noto Sans TC"';x.fillText(rec.status==='splash'?'脫鉤的水花':'只剩一圈漣漪',120,y0+tankH+130);
-      x.fillStyle='#3A4A5E';x.font='38px "Noto Sans TC"';wrapText(x,rec.status==='splash'?'準時起床了，魚跑掉而已。':'今天魚跑了，明天再來。',120,y0+tankH+200,840,58);
-    }
-  });
+  if(fish.length>1){drawFishCard(x,fish[0],290,680,250);drawFishCard(x,fish[1],1010,680,250)}
+  else{drawFishCard(x,fish[0],300,1120,560);
+    if(!fish[0]){const ty=300+40+560+70;x.fillStyle='#14223A';x.font='700 58px "Noto Sans TC"';x.fillText(rec.status==='splash'?'脫鉤的水花':'只剩一圈漣漪',120,ty);
+      x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';wrapText(x,rec.status==='splash'?'準時起床了！只是收線的時候魚跑掉了。起床這件事，今天已經做到。':'浮標沉下去的時候還在棉被裡。魚不會記仇，明天牠還會來。',120,ty+70,840,46)}}
   const t=rec.hookAt||rec.wakeAt;
-  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText('起床時間',80,1760);
-  x.fillStyle='#F4F1EA';x.font='72px "Press Start 2P"';x.fillText(t?hm(t):'--:--',80,1860);
+  x.fillStyle='#B9C4D6';x.font='36px "Noto Sans TC"';x.fillText('起床時間',80,1800);
+  x.fillStyle=rec.hookAt?'#F4F1EA':'#B9C4D6';x.font='64px "Press Start 2P"';x.fillText(t?hm(t):'--:--',80,1880);
+  x.fillStyle='#4A6690';x.font='28px "Noto Sans TC"';x.textAlign='right';x.fillText(rec.hookAt?'準時上鉤':'今天魚跑了',1000,1870);x.textAlign='left';
   return c;
 }
 async function weekImage(d){
   await fontsReady();
   const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
-  x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);
+  x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);skyBands(x);
   const mon=mondayOf(parseYmd(d));
-  x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,150);
-  x.fillStyle='#F4F1EA';x.font='700 64px "Noto Sans TC"';x.fillText('本週漁獲',80,260);
-  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText(`${md(ymd(mon))} – ${md(ymd(addDays(mon,6)))}　目標 ${targetFor(d)}`,80,330);
+  x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,100);
+  x.fillStyle='#F4F1EA';x.font='700 64px "Noto Sans TC"';x.fillText('本週漁獲',80,330);
+  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText(`${md(ymd(mon))} – ${md(ymd(addDays(mon,6)))}`,80,390);
   let hits=0;
   for(let i=0;i<7;i++){
-    const day=ymd(addDays(mon,i)),r=getDay(day),y=400+i*200;
+    const day=ymd(addDays(mon,i)),r=getDay(day),y=440+i*190;
     x.fillStyle=r?.fish?.length?'#24607A':r?.status==='splash'?'#1F3557':'#1B2D4A';x.fillRect(80,y,920,170);
     x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText('一二三四五六日'[i],120,y+100);
     if(r?.hookAt)hits++;
