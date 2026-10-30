@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>晨釣</title>
+<meta name="description" content="固定時間起床的釣魚遊戲：鬧鐘響後 3 分鐘內拍下第一張照片，魚就上鉤。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="晨釣">
+<meta property="og:description" content="鬧鐘響後 3 分鐘內拍下第一張照片，魚就上鉤；照順序拍完，把魚釣起來。">
+<meta property="og:url" content="https://monmonlee.github.io/morning-fishing/">
+<meta property="og:image" content="https://monmonlee.github.io/morning-fishing/icons/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="晨釣">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14223A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#14223A; --bg2:#0E1828; --panel:#1B2D4A; --panel2:#1F3557; --line:#2D4A73; --line2:#4A6690;
+  --water:#24607A; --water2:#3F8FA8;
+  --text:#F4F1EA; --sub:#B9C4D6; --dim:#8E9BB0;
+  --accent:#F2A65A; --red:#E5533D; --ok:#7FC8A9; --cream:#F4F1EA; --ink:#14223A;
+  --px:'Press Start 2P',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',-apple-system,'PingFang TC',sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select{font:inherit}
+[hidden]{display:none!important}
+.wrap{max-width:460px;margin:0 auto;padding:0 18px}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0 4px}
+.logo{font-family:var(--px);font-size:13px;color:var(--accent);letter-spacing:1px}
+.chip{font-size:13px;color:var(--sub);background:var(--panel);border:2px solid var(--line);padding:4px 10px}
+.px{font-family:var(--px)}
+.sub{color:var(--sub);font-size:13px}
+.dim{color:var(--dim);font-size:12px}
+h2{font-size:14px;color:var(--sub);font-weight:500;margin:22px 0 10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 14px;background:var(--panel);border:2px solid var(--line2);font-size:15px;width:100%}
+.btn.primary{background:var(--accent);color:var(--ink);border-color:var(--accent);font-weight:700}
+.btn.ghost{background:transparent}
+.btn.danger{border-color:var(--red)}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{background:var(--panel);border:2px solid var(--line);padding:14px}
+
+/* 首頁：魚訊 */
+.hero{padding:14px 0 0}
+.hero .label{font-size:13px;color:var(--sub)}
+.hero .big{font-family:var(--px);font-size:34px;line-height:1.35;margin:4px 0}
+.hero .note{font-size:15px;color:var(--accent)}
+.pond{position:relative;height:150px;background:var(--panel2);border:3px solid var(--line);overflow:hidden;margin-top:16px}
+.pond .water{position:absolute;left:0;right:0;bottom:0;height:70px;background:var(--water)}
+.pond .surface{position:absolute;left:0;right:0;bottom:66px;height:4px;background:var(--water2)}
+.pond .lineV{position:absolute;left:50%;top:0;width:2px;height:72px;background:var(--sub)}
+.pond .bob{position:absolute;left:calc(50% - 5px);bottom:62px;width:12px;height:18px;background:var(--red);border:2px solid var(--cream)}
+.pond.biting .bob{animation:bob .5s steps(2) infinite}
+@keyframes bob{50%{transform:translateY(8px)}}
+.pond .shadow{position:absolute;bottom:14px;left:16%;opacity:.45;animation:swim 7s linear infinite}
+@keyframes swim{0%{transform:translateX(-30px)}50%{transform:translateX(150px)}100%{transform:translateX(-30px)}}
+.countdown{font-family:var(--px);font-size:42px;text-align:center;margin:8px 0 2px}
+.tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:12px;text-align:center;margin-top:10px}
+.tiers div{padding:8px 4px;background:var(--panel);color:var(--sub)}
+.tiers div.on{background:var(--accent);color:var(--ink);font-weight:700}
+
+/* 魚餌 */
+.bait{min-height:66px;text-align:left;padding:10px 12px;background:var(--panel);border:3px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.bait b{font-size:15px;font-weight:500}
+.bait span{font-size:12px;color:var(--sub)}
+.bait.on{border-color:var(--accent);background:var(--line)}
+.bait.combo{grid-column:1/-1;min-height:auto;flex-direction:row;justify-content:space-between;align-items:center}
+
+/* 本週 */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.week .d{display:flex;flex-direction:column;align-items:center;gap:4px}
+.week .c{width:100%;aspect-ratio:1;background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.week .c.hit{background:var(--water);border-color:var(--water2)}
+.week .c.splash{background:var(--panel2);border-color:var(--water2)}
+.week .c.today{outline:2px solid var(--accent);outline-offset:1px}
+.week .c canvas{width:90%;height:auto;image-rendering:pixelated}
+.week .c i{width:40%;height:28%;background:#DCE9EE;display:block}
+.week .n{font-size:11px;color:var(--sub)}
+
+/* 收線 */
+.steps{display:flex;flex-direction:column;gap:8px}
+.step{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--panel);border:2px solid var(--line)}
+.step .no{width:28px;height:28px;flex:none;background:var(--line2);color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.step .t{flex:1;display:flex;flex-direction:column;gap:2px}
+.step .t b{font-size:15px;font-weight:500}
+.step .t span{font-size:12px;color:var(--sub)}
+.step .tm{font-family:var(--px);font-size:10px;color:var(--dim);text-align:right}
+.step.done{background:var(--panel2);border-color:var(--water2)}
+.step.done .no{background:var(--ok)}
+.step.done .tm{color:var(--ok)}
+.step.now{border-color:var(--accent);background:var(--line)}
+.step.now .no{background:var(--accent)}
+.step.now .tm{color:var(--accent)}
+.step.broken{opacity:.5}
+.step.broken .no{background:var(--red)}
+.tension{height:18px;background:var(--panel);border:2px solid var(--line2);display:flex;margin-top:6px}
+.tension div{background:var(--accent);transition:width .6s steps(6)}
+.warn{padding:12px 14px;background:#2A1C1C;border:2px solid var(--red);font-size:13px;line-height:1.6}
+
+/* 魚卡 */
+.fcard{background:var(--cream);color:var(--ink);border:4px solid var(--ink);outline:4px solid var(--accent);padding:16px;display:flex;flex-direction:column;gap:10px}
+.fcard.miss{outline-color:var(--line2)}
+.fcard .top{display:flex;justify-content:space-between;align-items:baseline}
+.fcard .no{font-family:var(--px);font-size:10px}
+.fcard .stars{font-size:12px;font-weight:700;color:#B5452F}
+.fcard .tank{height:150px;background:var(--water);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.fcard .tank canvas{image-rendering:pixelated}
+.fcard .name{font-size:22px;font-weight:700}
+.fcard .desc{font-size:13px;line-height:1.6;color:#3A4A5E}
+.fcard .attrs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:11px;color:#3A4A5E}
+.fcard .attrs b{color:var(--ink);display:block;font-size:12px}
+.fcard .foot{border-top:2px dashed var(--dim);padding-top:10px;display:flex;justify-content:space-between;align-items:baseline}
+.fcard .foot .px{font-size:17px}
+.shiny{animation:shine 1.6s ease-in-out infinite}
+@keyframes shine{50%{filter:brightness(1.35) saturate(1.3)}}
+.ripple{position:absolute;border:3px solid #9CC3D3;border-radius:50%;opacity:.7}
+
+/* 兩條魚切換 */
+.carousel{position:relative;overflow:hidden}
+.carousel .track{display:flex;transition:transform .45s cubic-bezier(.3,1.3,.5,1)}
+.carousel .track>*{flex:0 0 100%;padding:6px}
+.dots{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.dots button{width:12px;height:12px;padding:0;background:var(--line2);border:none}
+.dots button.on{background:var(--accent)}
+.swapbtn{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;background:rgba(14,24,40,.7);border:2px solid var(--line2);z-index:2}
+.swapbtn.l{left:0}.swapbtn.r{right:0}
+
+/* 圖鑑 */
+.dexsp{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--panel);border:2px solid var(--line);width:100%;text-align:left}
+.dexsp .pic{width:84px;height:52px;background:var(--water);display:flex;align-items:center;justify-content:center;flex:none}
+.dexsp .pic canvas{image-rendering:pixelated}
+.dexsp .pic.unknown{background:var(--panel2)}
+.dexsp .pic.unknown canvas{filter:brightness(0);opacity:.5}
+.dexsp .info{flex:1}
+.dexsp .info b{display:block;font-size:15px;font-weight:500}
+.dexgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dexgrid .v{background:var(--water);padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;text-align:center;border:none;color:var(--text)}
+.dexgrid .v canvas{image-rendering:pixelated}
+
+/* 底部分頁 */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-top:2px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
+nav.tabs button{flex:1;min-height:60px;background:none;border:none;color:var(--dim);font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+nav.tabs button.on{color:var(--accent)}
+nav.tabs svg{width:22px;height:22px}
+
+/* 覆蓋層 */
+.ov{position:fixed;inset:0;background:var(--bg2);z-index:50;display:flex;flex-direction:column;overflow:auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.ov .wrap{width:100%;flex:1;display:flex;flex-direction:column;padding-bottom:18px}
+.ovhead{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+.x{width:44px;height:44px;background:none;border:2px solid var(--line2);font-size:20px}
+.cam{position:relative;flex:1;min-height:320px;background:#000;border:3px solid var(--line2);overflow:hidden}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam .frame{position:absolute;inset:14%;border:2px dashed rgba(255,255,255,.55);pointer-events:none}
+.cam .frame.round{border-radius:50%;inset:26% 22%}
+.cam .msg{position:absolute;left:0;right:0;bottom:0;padding:12px;background:rgba(14,24,40,.85);font-size:14px;text-align:center}
+.cam .tplthumb{position:absolute;top:10px;right:10px;width:64px;height:64px;border:2px solid var(--cream);image-rendering:pixelated}
+.shutter{width:80px;height:80px;border-radius:50%;background:var(--cream);border:6px solid var(--accent);margin:16px auto 6px;display:block}
+.shutter:active{transform:scale(.94)}
+.catch{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.catch .big{font-size:24px;font-weight:700;color:var(--accent)}
+.catch .fishbox{width:100%;height:190px;background:var(--water);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.catch .fishbox canvas{image-rendering:pixelated;animation:jump .9s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes jump{0%{transform:translateY(160px) rotate(-30deg)}100%{transform:translateY(0) rotate(0)}}
+.splashpx{position:absolute;width:8px;height:8px;background:#DCE9EE;animation:sp .8s ease-out forwards}
+@keyframes sp{to{transform:translate(var(--dx),var(--dy));opacity:0}}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--cream);color:var(--ink);padding:10px 16px;font-size:14px;z-index:80;max-width:88vw;text-align:center;border:3px solid var(--ink)}
+.updatebar{position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:30}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--sub)}
+label.f input,label.f select{min-height:46px;background:var(--panel);border:2px solid var(--line2);color:var(--text);padding:8px 10px;font-size:16px}
+.tplrow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:2px solid var(--line)}
+.tplrow canvas,.tplrow .ph{width:44px;height:44px;flex:none;image-rendering:pixelated;background:var(--panel2)}
+.tplrow .t{flex:1;font-size:14px}
+.tplrow button{min-height:40px;padding:6px 12px;background:var(--line);border:2px solid var(--line2);font-size:13px}
+.lock{font-size:12px;color:var(--dim)}
+.shareimg{width:100%;border:3px solid var(--line2)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">晨釣</div>
+    <button class="chip" id="spotChip">釣點：家</button>
+  </header>
+
+  <main id="viewToday"></main>
+  <main id="viewDex" hidden></main>
+  <main id="viewSet" hidden></main>
+</div>
+
+<nav class="tabs">
+  <button data-tab="Today" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 15c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M3 20c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M12 3v7"/><circle cx="12" cy="11" r="1.5"/></svg>今天</button>
+  <button data-tab="Dex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9c2-2 5-2 7 0-2 2-5 2-7 0z"/></svg>圖鑑</button>
+  <button data-tab="Set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>設定</button>
+</nav>
+
+<div class="ov" id="ov" hidden><div class="wrap" id="ovBody"></div></div>
+<div class="updatebar" id="updateBar" hidden><button class="btn primary" id="updateBtn"><span id="updateText">有新版本</span>，點我更新</button></div>
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script>
+/* bumped by scripts/release.sh; must match version.json on release */
+const APP_VERSION='dev';
+
+// ───────── 小工具 ─────────
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('手機空間不足，存不進去')}}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const hm=ts=>{const d=new Date(ts);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const WD='日一二三四五六';
+const md=s=>{const d=parseYmd(s);return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`};
+const MIN=60000;
+function mondayOf(d){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+const weekKey=d=>ymd(mondayOf(d));
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function atTime(dstr,t){const[h,m]=t.split(':').map(Number);const d=parseYmd(dstr);d.setHours(h,m,0,0);return d.getTime()}
+let toastT;function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms)}
+// 以日期＋種子做出可重現的亂數
+function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19}return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
+function pickW(list,wf,r){const ws=list.map(wf);let s=ws.reduce((a,b)=>a+b,0)*r();for(let i=0;i<list.length;i++){s-=ws[i];if(s<=0)return list[i]}return list[list.length-1]}
+
+// ───────── 規則 ─────────
+const HOOK_EARLY=90;   // 目標時間前幾分鐘就可以上鉤
+const HOOK_LATE=3;     // 鬧鐘後 3 分鐘內
+const COMBO_TOTAL=60;  // 雙餌：上鉤後 60 分鐘內兩條都收完
+const COMBO_GAP=10;    // 雙餌：收完一條後 10 分鐘內要開始下一條（防回床）
+const BAD_PER_MONTH=2, MANUAL_PER_WEEK=2;
+// after:[最少, 最多] 分鐘（相對同一條線的上一張）
+const CHAINS={
+  shower:{name:'洗澡',short:'浴巾→蓮蓬頭→霧鏡',steps:[
+    {k:'towel',label:'浴巾',tpl:true,hint:'對準你的浴巾'},
+    {k:'head',label:'正在出水的蓮蓬頭',tpl:true,after:[0,3],hint:'手機放洗手台，拍出水的蓮蓬頭'},
+    {k:'mirror',label:'起霧的鏡子',tpl:true,fog:true,after:[10,30],hint:'洗完澡，拍起霧的鏡子'}]},
+  coffee:{name:'咖啡',short:'滿杯→空杯',steps:[
+    {k:'full',label:'滿杯咖啡',cup:'full',hint:'杯口放進圓框裡'},
+    {k:'empty',label:'喝完的空杯',cup:'empty',after:[2,30],hint:'同一個杯子，喝完再拍'}]},
+  water:{name:'水',short:'一杯水→空杯',steps:[
+    {k:'cup',label:'一杯水或瓶裝水',hint:'拍你的水杯或水瓶'},
+    {k:'wempty',label:'喝完的空杯／空瓶',after:[1,30],hint:'喝完再拍'}]}
+};
+const TPL_STEPS=[['towel','浴巾','平常掛的地方'],['head','正在出水的蓮蓬頭','打開水，從洗手台的位置拍'],['mirror','浴室鏡子（沒起霧）','現在就拍，之後拿來比對有沒有起霧']];
+
+// ───────── 魚 ─────────
+// o 背／輪廓、b 身體（花紋畫在這）、w 肚子、f 鰭、e 眼睛、m 鬍鬚
+const SPECIES=[
+ {id:'tilapia',name:'吳郭魚',stars:1,pool:['stream','sea'],len:[15,35],desc:'原產非洲的強韌魚種，幾乎哪裡的水都活得下去。',art:['....fffffff.......','...fobbbbbbof.....','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwbbbbbbbbbbbofff','..wwwwbbbbbbbo..f.','...owwwwwwwwo.....','....ff....ff......']},
+ {id:'mosquito',name:'大肚魚',stars:1,pool:['stream'],len:[2,5],desc:'直接生下小魚的卵胎生小魚，常在水溝邊游來游去。',art:['......ooo.........','....oobbbboo......','..oebbbbbbbbbo.ff.','.obbbbbbbbbbbbfff.','..wwwwwwwbbbbo.ff.','....wwwwwwoo......','......f...........']},
+ {id:'carp',name:'鯉魚',stars:1,pool:['stream','sea'],len:[30,70],desc:'嘴邊有兩對鬚，可以活好幾十年。',art:['.....ooooooo......','...oobbbbbbbboo..f','..obbbbbbbbbbbbbff','.obebbbbbbbbbbbbff','mobbbbbbbbbbbbbbff','m.wwwbbbbbbbbbboff','...wwwwwwwwwwoo..f','.....ff....ff.....']},
+ {id:'ayu',name:'香魚',stars:2,pool:['stream'],len:[12,25],desc:'只在乾淨的溪流生活，大多一年就走完一生。',art:['......ooooo.......','...ooobbbbbooo..f.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','.wwwwwwbbbbbbbboff','...wwwwwwwwwooo.f.','......ff..ff......']},
+ {id:'zacco',name:'溪哥',stars:2,pool:['stream'],len:[10,18],desc:'台灣溪流常見的小魚，繁殖期雄魚會換上鮮豔的婚姻色。',art:['.....oooooo.......','...oobbbbbbboo..f.','.obebbbbbbbbbbbbff','obbbbbbbbbbbbbboff','.wwwwwbbbbbbbboo.f','...wwwwwwwwwoo....','.....ffffff.......']},
+ {id:'formosana',name:'櫻花鉤吻鮭',stars:4,pool:['stream'],len:[20,40],desc:'冰河時期留下來的陸封型鮭魚，只住在大甲溪上游，是台灣的國寶魚。',art:['......ooooo.......','...ooobbbbbboo.ff.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','.wwwwwbbbbbbbbbo.f','...wwwwwwwwwwoo...','.....ff...ff......']},
+ {id:'milkfish',name:'虱目魚',stars:1,pool:['sea'],len:[30,60],desc:'台南早餐的主角，鱗片銀亮、游得很快。',art:['.......ooo......f.','....ooobbbooo..ff.','..oobbbbbbbbbbofff','.oebbbbbbbbbbbbbf.','obbbbbbbbbbbbbbbf.','.wwwwwwbbbbbbbboff','...wwwwwwwwwwoo.ff','................f.']},
+ {id:'seabream',name:'黑鯛',stars:2,pool:['sea'],len:[20,45],desc:'常在防波堤被釣起，聰明又謹慎，釣客很愛牠。',art:['.....fffff........','...oobbbbbbo......','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwwbbbbbbbbbbofff','..wwwwwwbbbbbo..f.','....wwwwwwwoo.....','......ff..ff......']},
+ {id:'puffer',name:'河豚',stars:2,pool:['sea'],len:[10,30],desc:'受到威脅會把身體鼓成一顆球。',art:['.....ooooooo......','...oobbbbbbbboo...','..obbbbbbbbbbbbof.','.obebbbbbbbbbbbbff','.obbbbbbbbbbbbbbff','.owwwwwwwwwwwwwof.','..owwwwwwwwwwwwo..','...oowwwwwwwwoo...','.....ooooooo......']},
+ {id:'mahi',name:'鬼頭刀',stars:3,pool:['sea'],len:[60,140],desc:'額頭高高隆起，剛出水時身上是亮綠和金黃色。',art:['oooffffffffff.....','obbbbbbbbbbbbbo..f','obebbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','owwwbbbbbbbbbbboff','.owwwwwwwwwwwoo..f','....ffffff........']}
+];
+const PATTERNS=[{id:'plain',w:'',name:'素色'},{id:'spot',w:'斑',name:'斑點'},{id:'bar',w:'紋',name:'條紋'},{id:'line',w:'線',name:'線紋'},{id:'cloud',w:'雲',name:'雲紋'},{id:'star',w:'星',name:'星點'}];
+const PALETTES=[
+ {id:'silver',w:'銀',b:'#9CC3D3',o:'#2F4858',wb:'#EAF2F4',f:'#6E99AE',a:'#E8B931'},
+ {id:'gold',w:'金',b:'#E8B931',o:'#7A5A12',wb:'#FFF1BF',f:'#D08A1E',a:'#FFF6D5',rare:true},
+ {id:'red',w:'紅',b:'#E5533D',o:'#6B1F14',wb:'#FFD6CC',f:'#B83A28',a:'#FFE08A'},
+ {id:'blue',w:'藍',b:'#4A7BD0',o:'#1C2F5A',wb:'#D6E4FF',f:'#355EA8',a:'#9FD8FF'},
+ {id:'jade',w:'翠',b:'#4FAF7F',o:'#1D4A33',wb:'#DDF5E7',f:'#2F8A5D',a:'#F2E36B'},
+ {id:'ink',w:'墨',b:'#3E4552',o:'#151A22',wb:'#A9B1BE',f:'#2A2F38',a:'#7FC8A9'},
+ {id:'pink',w:'粉',b:'#F2A7C0',o:'#7A3A52',wb:'#FFF0F5',f:'#D97A9C',a:'#FFFFFF'},
+ {id:'orange',w:'橙',b:'#F2A65A',o:'#7A4512',wb:'#FFE9CF',f:'#D9822B',a:'#FFF3B0'},
+ {id:'violet',w:'紫',b:'#9B7FD0',o:'#3B2A66',wb:'#EDE6FF',f:'#7A5EB8',a:'#FFD6F0'},
+ {id:'moon',w:'月白',b:'#EEF3F7',o:'#5E7385',wb:'#FFFFFF',f:'#C9D6E2',a:'#7FB3D5',rare:true}
+];
+const TRAITS=[{id:'none',w:'',name:'—',wt:5},{id:'fin',w:'長鰭',name:'長鰭',wt:1},{id:'eye',w:'大眼',name:'大眼',wt:1},{id:'fat',w:'胖胖',name:'胖胖',wt:1},{id:'shiny',w:'閃光',name:'閃光',wt:.1,rare:true}];
+const TRAIT_LINE={fin:'鰭特別長，游起來像在跳舞。',eye:'眼睛特別大，什麼都看得到。',fat:'圓滾滾的，吃得很好。',shiny:'在光下會閃，非常少見。'};
+const RODS=[[0,'竹竿'],[5,'碳纖竿'],[15,'溪流竿'],[30,'海釣竿'],[50,'黃金竿'],[80,'傳說竿']];
+const TOTAL_COMBOS=SPECIES.length*PATTERNS.length*PALETTES.length*TRAITS.length;
+const sp=id=>SPECIES.find(s=>s.id===id), pat=id=>PATTERNS.find(p=>p.id===id), pal=id=>PALETTES.find(p=>p.id===id), tr=id=>TRAITS.find(t=>t.id===id);
+const fishName=f=>`${pal(f.pal).w}${pat(f.pat).w}${tr(f.trait).w}${sp(f.sp).name}`;
+const fishKey=f=>`${f.sp}|${f.pat}|${f.pal}|${f.trait}`;
+function fishStars(f){let s=sp(f.sp).stars+(pal(f.pal).rare?1:0)+(f.trait==='shiny'?1:0)+(f.big?1:0);return Math.min(5,s)}
+const STAR_WORD=['','普通','普通','稀有','非常稀有','傳說'];
+
+function fishGrid(f){
+  let g=sp(f.sp).art.map(r=>r.split(''));
+  if(f.trait==='fat'){const m=Math.floor(g.length/2);g.splice(m,0,[...g[m]])}
+  if(f.trait==='fin'){
+    const W=g[0].length;
+    const top=Array(W).fill('.'),bot=Array(W).fill('.');
+    g[0].forEach((c,x)=>{if(c==='f'||c==='o')top[x]=x%2?'f':'.'});
+    g[g.length-1].forEach((c,x)=>{if(c==='f'||c==='w'||c==='o')bot[x]=x%2?'.':'f'});
+    g=[top,...g,bot];
+  }
+  if(f.trait==='eye'){for(let y=0;y<g.length;y++)for(let x=0;x<g[y].length;x++)if(g[y][x]==='e'){if(g[y][x+1]==='b')g[y][x+1]='E';if(g[y+1]&&g[y+1][x]==='b')g[y+1][x]='E'}}
+  const P=pal(f.pal), r=rng(fishKey(f));
+  const noise=Array.from({length:40},()=>r());
+  return g.map((row,y)=>row.map((c,x)=>{
+    switch(c){
+      case 'o':return P.o; case 'w':return P.wb; case 'f':return P.f; case 'm':return P.o;
+      case 'e':case 'E':return '#14223A';
+      case 'b':{
+        const p=f.pat; let on=false;
+        if(p==='spot')on=(x*7+y*13)%9===0||(x*5+y*3)%11===0;
+        else if(p==='bar')on=x%4===1;
+        else if(p==='line')on=y%3===1;
+        else if(p==='cloud')on=noise[((x>>1)+(y>>1)*7)%40]<.33;
+        else if(p==='star')on=(x+y*5)%7===3;
+        return on?P.a:P.b}
+      default:return null}
+  }));
+}
+function fishCanvas(f,cell=6){
+  const g=fishGrid(f), c=document.createElement('canvas');
+  c.width=g[0].length*cell;c.height=g.length*cell;
+  const x=c.getContext('2d');
+  g.forEach((row,yy)=>row.forEach((col,xx)=>{if(col){x.fillStyle=col;x.fillRect(xx*cell,yy*cell,cell,cell)}}));
+  if(f.trait==='shiny')c.classList.add('shiny');
+  return c;
+}
+function drawFishOn(ctx,f,cx,cy,cell){
+  const g=fishGrid(f),w=g[0].length*cell,h=g.length*cell,x0=Math.round(cx-w/2),y0=Math.round(cy-h/2);
+  g.forEach((row,yy)=>row.forEach((col,xx)=>{if(col){ctx.fillStyle=col;ctx.fillRect(x0+xx*cell,y0+yy*cell,cell,cell)}}));
+}
+
+// ───────── 資料 ─────────
+let S=store.get('settings');
+const getDay=d=>store.get('day:'+d);
+const putDay=(d,v)=>store.set('day:'+d,v);
+function save(){store.set('settings',S)}
+function targetFor(dstr){
+  const wk=weekKey(parseYmd(dstr)), keys=Object.keys(S.targets).sort();
+  let t=null;for(const k of keys){if(k<=wk)t=S.targets[k]}
+  return t||S.targets[keys[0]]||'08:30';
+}
+function spotObj(){return S.spots[S.spot]||S.spots.home}
+function monthBadCount(d){const m=d.slice(0,7);return (S.badLog||[]).filter(x=>x.startsWith(m)).length}
+function weekManualCount(d){const wk=weekKey(parseYmd(d));return (S.manualLog||[]).filter(x=>weekKey(parseYmd(x))===wk).length}
+function allCaught(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('day:')){const r=store.get(k);(r?.fish||[]).forEach(f=>out.push(f))}}return out}
+function rodOf(n){let lv=0;RODS.forEach(([t],i)=>{if(n>=t)lv=i});return {lv,name:RODS[lv][1],next:RODS[lv+1]?.[0]}}
+
+// ───────── 一天的狀態 ─────────
+function newDay(dstr){return {target:targetFor(dstr),bait:[...S.bait],spot:S.spot,bad:S.badFor===dstr,hookAt:null,shots:[],fish:[],final:false,status:null,wakeAt:null}}
+function chainShots(rec,ch){return rec.shots.filter(s=>s.ch===ch)}
+function limits(rec){const k=rec.bad?1.5:1;return {k,total:COMBO_TOTAL*k,gap:COMBO_GAP*k}}
+// 每條線：下一步、期限、有沒有斷
+function chainState(rec,ch,now){
+  const def=CHAINS[ch], shots=chainShots(rec,ch), n=shots.length, L=limits(rec);
+  if(n>=def.steps.length)return {done:true,n,doneAt:shots[n-1].at};
+  if(!rec.hookAt)return {n,deadline:atTime(rec.date,rec.target)+HOOK_LATE*MIN};
+  let deadline, earliest=0;
+  if(n>0){const st=def.steps[n];earliest=shots[n-1].at+st.after[0]*MIN;deadline=shots[n-1].at+st.after[1]*MIN*L.k}
+  else{
+    deadline=rec.hookAt+L.total*MIN;
+    // 另一條線收完了 → 10 分鐘內要開始這條
+    const other=rec.bait.find(c=>c!==ch), os=other?chainShots(rec,other):[];
+    if(other&&os.length>=CHAINS[other].steps.length)deadline=Math.min(deadline,os[os.length-1].at+L.gap*MIN);
+  }
+  if(rec.bait.length>1)deadline=Math.min(deadline,rec.hookAt+L.total*MIN);
+  return {n,deadline,earliest,broken:now>deadline};
+}
+function settle(rec,now){
+  if(rec.final)return rec;
+  const T=atTime(rec.date,rec.target);
+  if(!rec.hookAt){
+    if(now>T+HOOK_LATE*MIN){rec.final=true;rec.status='miss'}
+    return rec;
+  }
+  const st=rec.bait.map(ch=>chainState(rec,ch,now));
+  if(st.every(s=>s.done||s.broken)){
+    rec.final=true;rec.status=rec.fish.length?'caught':'splash';
+  }
+  return rec;
+}
+function loadToday(now){
+  const d=ymd(new Date(now));let rec=getDay(d);
+  if(rec){rec.date=d;settle(rec,now);putDay(d,rec)}
+  return {d,rec};
+}
+
+// ───────── 釣魚 ─────────
+function catchFish(rec,ch){
+  const T=atTime(rec.date,rec.target), delta=(rec.hookAt-T)/MIN;
+  const tier=delta<=1?2:delta<=2?1:.6;          // 越早上鉤越稀有
+  const rod=rodOf(allCaught().length);
+  const mul=tier*(1+.1*rod.lv);
+  const dow=parseYmd(rec.date).getDay();
+  let big=false;
+  if(dow===0){let hits=0;for(let i=1;i<=6;i++){const r=getDay(ymd(addDays(parseYmd(rec.date),-i)));if(r?.hookAt)hits++}big=hits>=4}
+  const spotDef=S.spots[rec.spot]||S.spots.home, pool=SPECIES.filter(s=>s.pool.includes(spotDef.water||'stream'));
+  const r=rng(rec.date+ch+rec.hookAt);
+  let s=pickW(pool,x=>x.stars===1?10:x.stars===2?5*mul:x.stars===3?2*mul:.6*mul,r);
+  if(big&&s.stars<3){const rare=pool.filter(x=>x.stars>=3);if(rare.length)s=rare[Math.floor(r()*rare.length)]}
+  const p=PATTERNS[Math.floor(r()*PATTERNS.length)];
+  const pl=pickW(PALETTES,x=>x.rare?.15*mul:1,r);
+  const t=pickW(TRAITS,x=>x.id==='shiny'?x.wt*mul:x.wt,r);
+  const size=(s.len[0]+(s.len[1]-s.len[0])*r())*(tier<1?.7:1)*(big?1.3:1);
+  const f={sp:s.id,pat:p.id,pal:pl.id,trait:t.id,cm:Math.round(size),ch,big,at:Date.now()};
+  rec.fish.push(f);
+  const dex=store.get('dex')||{}, k=fishKey(f);
+  const isNew=!dex[k];dex[k]=dex[k]||{n:0,first:rec.date};dex[k].n++;store.set('dex',dex);
+  return {f,isNew};
+}
+
+// ───────── 相機與比對 ─────────
+let stream=null;
+async function openCamera(video){
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+  video.srcObject=stream;await video.play();
+}
+function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+function grab(video){
+  const N=64,c=document.createElement('canvas');c.width=N;c.height=N;
+  const x=c.getContext('2d',{willReadFrequently:true});
+  const vw=video.videoWidth,vh=video.videoHeight,s=Math.min(vw,vh);
+  x.drawImage(video,(vw-s)/2,(vh-s)/2,s,s,0,0,N,N);
+  return {c,data:x.getImageData(0,0,N,N).data,N};
+}
+// 簽名：顏色分佈＋8×8 明暗格＋清晰度＋中心顏色；照片本身不留
+function signature({c,data,N}){
+  const hist=new Array(64).fill(0), gray=new Array(N*N), grid=new Array(64).fill(0);
+  let lum=0;
+  for(let i=0;i<N*N;i++){
+    const r=data[i*4],g=data[i*4+1],b=data[i*4+2];
+    hist[(r>>6)*16+(g>>6)*4+(b>>6)]++;
+    const L=.299*r+.587*g+.114*b;gray[i]=L;lum+=L;
+    const x=i%N,y=(i/N)|0;grid[((y>>3)*8)+(x>>3)]+=L/64;
+  }
+  for(let i=0;i<64;i++)hist[i]/=N*N;
+  let sharp=0;
+  for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){const i=y*N+x;sharp+=Math.abs(4*gray[i]-gray[i-1]-gray[i+1]-gray[i-N]-gray[i+N])}
+  sharp/=(N-2)*(N-2);
+  let cr=0,cg=0,cb=0,cn=0;
+  for(let y=24;y<40;y++)for(let x=24;x<40;x++){const i=(y*N+x)*4;cr+=data[i];cg+=data[i+1];cb+=data[i+2];cn++}
+  const thumb=document.createElement('canvas');thumb.width=16;thumb.height=16;thumb.getContext('2d').drawImage(c,0,0,16,16);
+  return {hist,grid,sharp,lum:lum/(N*N),center:[cr/cn,cg/cn,cb/cn],thumb:thumb.toDataURL('image/png')};
+}
+function similarity(a,b){
+  let hi=0;for(let i=0;i<64;i++)hi+=Math.min(a.hist[i],b.hist[i]);
+  const ma=a.grid.reduce((s,v)=>s+v,0)/64, mb=b.grid.reduce((s,v)=>s+v,0)/64;
+  let num=0,da=0,db=0;for(let i=0;i<64;i++){const x=a.grid[i]-ma,y=b.grid[i]-mb;num+=x*y;da+=x*x;db+=y*y}
+  const corr=da&&db?num/Math.sqrt(da*db):0;
+  return .5*hi+.5*(corr+1)/2;
+}
+const cdist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+function check(step,sig,rec,ch){
+  if(sig.lum<18)return {ok:false,why:'太暗了，開燈再拍一次'};
+  if(step.tpl){
+    const tpl=(S.spots[rec?rec.spot:S.spot]||{}).tpl?.[step.k];
+    if(!tpl)return {ok:false,why:'這個釣點還沒登記範本',noTpl:true};
+    const sim=similarity(sig,tpl);
+    if(step.fog){
+      if(sim<.45)return {ok:false,why:'看起來不像登記的鏡子'};
+      if(sig.sharp>tpl.sharp*.8)return {ok:false,why:'鏡子好像還沒起霧'};
+      return {ok:true};
+    }
+    return sim>=.55?{ok:true}:{ok:false,why:`跟範本不太像（${Math.round(sim*100)} 分），換個角度再拍`};
+  }
+  if(step.cup==='empty'){
+    const full=chainShots(rec,ch)[0];
+    if(full?.center&&cdist(full.center,sig.center)<30)return {ok:false,why:'杯子中間看起來還是滿的'};
+  }
+  return {ok:true};
+}
+
+// ───────── 畫面：今天 ─────────
+let tick=null;
+let carTimers=[];
+function renderToday(){
+  clearInterval(tick);carTimers.forEach(clearInterval);carTimers=[];
+  const now=Date.now(), {d,rec}=loadToday(now), v=$('#viewToday');
+  const target=rec?.target||targetFor(d), T=atTime(d,target);
+  $('#spotChip').textContent='釣點：'+spotObj().name;
+  let h='';
+  if(rec?.final) h+=finalBlock(rec)+tomorrowBlock(d);
+  else if(rec?.hookAt) h+=reelBlock(rec,now);
+  else if(now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN) h+=windowBlock(d,target,T,now);
+  else if(now>T+HOOK_LATE*MIN&&S.created===d) h+=`<section class="hero"><div class="label">歡迎來到晨釣</div><div class="big" style="font-size:20px;line-height:1.6">今天的魚已經游走了，<br>明天早上見。</div></section>`+tomorrowBlock(d);
+  else if(now>T+HOOK_LATE*MIN) h+=missedBlock(d,target)+tomorrowBlock(d);
+  else h+=beforeBlock(d,target);
+  h+=weekBlock(d);
+  v.innerHTML=h;
+  // 放上像素魚
+  v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
+  v.querySelectorAll('[data-bait]').forEach(b=>b.onclick=()=>toggleBait(b.dataset.bait,b.dataset.for));
+  v.querySelectorAll('[data-shoot]').forEach(b=>b.onclick=()=>shoot(b.dataset.shoot));
+  v.querySelector('#badBtn')?.addEventListener('click',useBad);
+  v.querySelector('#wakeBtn')?.addEventListener('click',()=>{const {d,rec}=loadToday(Date.now());const r=rec||Object.assign(newDay(d),{date:d,final:true,status:'miss'});r.wakeAt=Date.now();putDay(d,r);toast('記下來了：'+hm(r.wakeAt)+' 起床');renderToday()});
+  v.querySelector('#weekShare')?.addEventListener('click',()=>shareWeek(d));
+  v.querySelector('#dayShare')?.addEventListener('click',()=>shareDay(d));
+  setupCarousel(v);
+  const live=rec?.hookAt&&!rec.final || (!rec?.final&&now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN+1000);
+  if(live)tick=setInterval(()=>{if(!$('#ov').hidden)return;const n=Date.now();v.querySelectorAll('[data-until]').forEach(el=>{const ms=Math.max(0,+el.dataset.until-n);el.textContent=`${pad(Math.floor(ms/60000))}:${pad(Math.floor(ms/1000)%60)}`;if(ms===0)renderToday()})},500);
+}
+function baitPicker(forWhat,bait){
+  const opt=c=>`<button class="bait ${bait.includes(c)?'on':''}" data-bait="${c}" data-for="${forWhat}"><b>${CHAINS[c].name}</b><span>${CHAINS[c].short}</span></button>`;
+  return `<h2>${forWhat==='today'?'今天的魚餌':'明天的魚餌'}<span class="dim">　選兩種＝雙餌，多一條魚</span></h2><div class="grid2">${opt('shower')}${opt('coffee')}${opt('water')}<div class="bait combo ${bait.length>1?'on':''}" style="${bait.length>1?'':'opacity:.6'}"><b>${bait.length>1?'雙餌中':'雙餌'}</b><span>60 分鐘內兩條都收完＝多一條魚</span></div></div>`;
+}
+function toggleBait(c,forWhat){
+  let b=[...S.bait];
+  if(b.includes(c)){if(b.length===1)return toast('至少要一種魚餌');b=b.filter(x=>x!==c)}
+  else{b.push(c);if(b.length>2)b.shift()}
+  if(b.includes('shower')&&!hasShowerTpl())toast('洗澡路線要先在「設定」登記浴室範本');
+  S.bait=b;save();
+  const {d,rec}=loadToday(Date.now());
+  if(forWhat==='today'&&rec&&!rec.hookAt&&!rec.final){rec.bait=[...b];putDay(d,rec)}
+  renderToday();
+}
+const hasShowerTpl=()=>TPL_STEPS.every(([k])=>spotObj().tpl?.[k]);
+function badLine(d){
+  const used=monthBadCount(d), left=BAD_PER_MONTH-used, tomorrow=ymd(addDays(parseYmd(d),1));
+  const forDay=new Date().getHours()<12?d:tomorrow;
+  if(S.badFor===forDay)return `<div class="card" style="margin-top:12px">壞夜卡已用：${md(forDay)} 一樣要準時上鉤，收線時限放寬 1.5 倍；當天 15:00 前可以午睡 20 分鐘。</div>`;
+  return `<button class="btn ghost" id="badBtn" style="margin-top:12px" ${left<=0?'disabled':''}>壞夜卡：睡不好也要起來，但時限放寬（本月剩 ${Math.max(0,left)} 張）</button>`;
+}
+function useBad(){
+  const now=new Date(),d=ymd(now),forDay=now.getHours()<12?d:ymd(addDays(now,1));
+  if(monthBadCount(forDay)>=BAD_PER_MONTH)return toast('這個月的壞夜卡用完了');
+  S.badFor=forDay;S.badLog=[...(S.badLog||[]),forDay];save();
+  const rec=getDay(forDay);if(rec&&!rec.final){rec.bad=true;putDay(forDay,rec)}
+  toast('今晚先好好睡。明天一樣要準時上鉤喔');renderToday();
+}
+function beforeBlock(d,target){
+  return `<section class="hero"><div class="label">${md(d)} 魚訊</div><div class="big">${target}</div><div class="note">鬧鐘響後 3 分鐘內上鉤</div></section>
+  <div class="pond"><div class="water"></div><div class="surface"></div><div class="lineV"></div><div class="bob"></div><div class="shadow" data-fish='${JSON.stringify({sp:'ayu',pat:'plain',pal:'ink',trait:'none'})}' data-cell="4"></div></div>
+  ${baitPicker('today',S.bait)}${badLine(d)}
+  <p class="dim" style="margin-top:12px">提醒：iPhone 鬧鐘設 ${target} 一顆就好、關掉貪睡，手機放在離床最遠的地方充電。${target}前 ${HOOK_EARLY} 分鐘就可以開始拍，越早越稀有。</p>`;
+}
+function firstSteps(bait){return bait.map(ch=>{const s=CHAINS[ch].steps[0];return `<button class="btn ${bait.length===1?'primary':''}" data-shoot="${ch}">拍${s.label}（${CHAINS[ch].name}）</button>`}).join('')}
+function windowBlock(d,target,T,now){
+  const dl=T+HOOK_LATE*MIN, late=(now-T)/MIN;
+  const on=late<=1?0:late<=2?1:2;
+  const needTpl=S.bait.includes('shower')&&!hasShowerTpl();
+  return `<section class="hero" style="text-align:center"><div style="color:var(--red);font-weight:700">浮標在動！</div>
+  <div class="countdown" data-until="${dl}">--:--</div><div class="sub">${target} 鬧鐘 · ${hm(dl)} 前拍下第一張</div></section>
+  <div class="tiers"><div class="${on===0?'on':''}">0–1 分<br>稀有 ×2</div><div class="${on===1?'on':''}">1–2 分<br>一般魚</div><div class="${on===2?'on':''}">2–3 分<br>小魚</div></div>
+  <div class="pond biting"><div class="water"></div><div class="surface"></div><div class="lineV"></div><div class="bob"></div></div>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">${needTpl?'<div class="warn">洗澡路線還沒登記範本，先改用咖啡或水</div>':''}${firstSteps(S.bait.filter(c=>c!=='shower'||!needTpl))}</div>
+  ${baitPicker('today',S.bait)}`;
+}
+function reelBlock(rec,now){
+  const T=atTime(rec.date,rec.target);
+  let total=0,done=0;
+  const chains=rec.bait.map(ch=>{
+    const def=CHAINS[ch], shots=chainShots(rec,ch), st=chainState(rec,ch,now);
+    total+=def.steps.length;done+=shots.length;
+    const rows=def.steps.map((s,i)=>{
+      const shot=shots[i];
+      let cls='',tm='--:--',rule=i===0?(ch===rec.hookCh?'上鉤':'另一條收完後 10 分鐘內'):`上一張後 ${s.after[0]?s.after[0]+'–':''}${Math.round(s.after[1]*(rec.bad?1.5:1))} 分鐘內`;
+      if(shot){cls='done';tm=hm(shot.at)}
+      else if(i===st.n&&!st.broken){cls='now';tm=`<span data-until="${st.deadline}">--:--</span>`}
+      else if(st.broken)cls='broken';
+      return `<div class="step ${cls}"><div class="no">${i+1}</div><div class="t"><b>${s.label}</b><span>${rule}</span></div><div class="tm">${tm}</div></div>`;
+    }).join('');
+    const btn=!st.done&&!st.broken?`<button class="btn primary" data-shoot="${ch}" style="margin-top:8px">拍${def.steps[st.n].label}</button>`:'';
+    const tag=st.done?'<span style="color:var(--ok)">釣起來了</span>':st.broken?'<span style="color:var(--red)">脫鉤了</span>':'';
+    return `<h2>${def.name}線 ${tag}</h2><div class="steps">${rows}</div>${btn}`;
+  }).join('');
+  return `<section class="hero"><div style="font-size:13px;color:var(--accent);font-weight:700">上鉤了！起床時間</div><div class="big" style="font-size:30px">${hm(rec.hookAt)}</div>
+  <div class="sub">${rec.bait.length>1?`雙餌 · ${hm(rec.hookAt+limits(rec).total*MIN)} 前兩條都收完＝多一條魚`:CHAINS[rec.bait[0]].name+'線'}${rec.bad?' · 壞夜卡：時限放寬':''}</div></section>
+  <div style="margin-top:18px"><div style="display:flex;justify-content:space-between" class="dim"><span>張力</span><span>魚越拉越近</span></div><div class="tension"><div style="width:${Math.round(done/total*100)}%"></div></div></div>
+  ${chains}
+  <div class="warn" style="margin-top:18px">任何一步超時，線上的魚就會脫鉤。洗完澡的下一站是<b>客廳</b>，不是房間。</div>`;
+}
+function fishCardHTML(f,rec){
+  const s=sp(f.sp),stars=fishStars(f),dex=store.get('dex')||{};
+  const no=Object.keys(dex).sort((a,b)=>dex[a].first<dex[b].first?-1:1).indexOf(fishKey(f))+1;
+  return `<div class="fcard"><div class="top"><div class="no">No.${String(no||0).padStart(3,'0')}</div><div class="stars">${'★'.repeat(stars)} ${STAR_WORD[stars]}${f.big?' · 週日大魚':''}</div></div>
+  <div class="tank" data-fish='${JSON.stringify(f)}' data-cell="9"></div>
+  <div class="name">${fishName(f)}</div>
+  <div class="desc">${s.desc}${TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''}</div>
+  <div class="attrs"><div>魚種<b>${s.name}</b></div><div>花紋<b>${pat(f.pat).name}</b></div><div>特徵<b>${tr(f.trait).name}</b></div><div>體長<b>${f.cm} cm</b></div></div>
+  <div class="foot"><div style="font-size:12px;color:#3A4A5E">${md(rec.date)}起床</div><div class="px">${hm(rec.hookAt)}</div></div></div>`;
+}
+function emptyCardHTML(rec,kind){
+  const t=rec.hookAt||rec.wakeAt;
+  const title=kind==='splash'?'脫鉤的水花':'只剩一圈漣漪';
+  const desc=kind==='splash'?'準時起床了！只是收線的時候魚跑掉了。起床這件事，今天已經做到。':`浮標沉下去的時候你還在棉被裡。魚不會記仇，明天 ${targetFor(ymd(addDays(parseYmd(rec.date),1)))} 牠還會來。`;
+  return `<div class="fcard miss"><div class="top"><div class="no">No.---</div><div class="dim" style="color:#3A4A5E">${kind==='splash'?'準時起床':'空水面'}</div></div>
+  <div class="tank"><div class="ripple" style="width:60px;height:14px"></div><div class="ripple" style="width:110px;height:26px;opacity:.35"></div></div>
+  <div class="name">${title}</div><div class="desc">${desc}</div>
+  <div class="foot"><div style="font-size:12px;color:#3A4A5E">${md(rec.date)}起床</div><div class="px">${t?hm(t):'—'}</div></div></div>`;
+}
+function cardsHTML(rec){
+  if(!rec.fish.length)return emptyCardHTML(rec,rec.status==='splash'?'splash':'miss');
+  if(rec.fish.length===1)return fishCardHTML(rec.fish[0],rec);
+  return `<div class="carousel" data-n="${rec.fish.length}"><button class="swapbtn l" aria-label="上一條魚">‹</button><button class="swapbtn r" aria-label="下一條魚">›</button><div class="track">${rec.fish.map(f=>`<div>${fishCardHTML(f,rec)}</div>`).join('')}</div></div><div class="dots">${rec.fish.map((_,i)=>`<button aria-label="第 ${i+1} 條" class="${i?'':'on'}"></button>`).join('')}</div>`;
+}
+function setupCarousel(root){
+  root.querySelectorAll('.carousel').forEach(car=>{
+    const track=car.querySelector('.track'),n=+car.dataset.n,dots=car.nextElementSibling.querySelectorAll('button');
+    let i=0,timer,sx=null;
+    const go=k=>{i=(k+n)%n;track.style.transform=`translateX(${-100*i}%)`;dots.forEach((d,j)=>d.classList.toggle('on',j===i));clearInterval(timer);timer=setInterval(()=>go(i+1),3500);carTimers.push(timer)};
+    car.querySelector('.l').onclick=()=>go(i-1);car.querySelector('.r').onclick=()=>go(i+1);
+    dots.forEach((d,j)=>d.onclick=()=>go(j));
+    car.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+    car.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)go(i+(dx<0?1:-1));sx=null});
+    go(0);
+  });
+}
+function finalBlock(rec){
+  const head=rec.status==='caught'?(rec.fish.length>1?`釣起來了！雙餌 ×${rec.fish.length}`:'釣起來了！'):rec.status==='splash'?'準時起床，魚脫鉤了':'今天魚跑了';
+  const extra=rec.status==='miss'&&!rec.wakeAt?'<button class="btn" id="wakeBtn" style="margin-top:10px">記錄起床時間（現在）</button>':'';
+  return `<h2 style="text-align:center;color:var(--accent);font-weight:700;font-size:15px">${head}</h2>${cardsHTML(rec)}${extra}
+  <button class="btn primary" id="dayShare" style="margin-top:14px">分享到 IG 限動（摯友）</button>
+  ${rec.status!=='caught'?'<p class="dim" style="text-align:center">空水面也發：週日的週漁獲卡會留下這一格。唯一的規則是不要連續兩天。</p>':''}`;
+}
+function missedBlock(d,target){
+  const rec=Object.assign(newDay(d),{date:d,final:true,status:'miss'});
+  putDay(d,rec);return finalBlock(rec);
+}
+function tomorrowBlock(d){
+  const t=ymd(addDays(parseYmd(d),1)), target=targetFor(t);
+  return `<h2>明天的魚訊</h2><div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="sub">${md(t)}</div><div class="px" style="font-size:22px;margin-top:6px">${target}</div></div><div class="sub" style="text-align:right">iPhone 鬧鐘一顆<br>關掉貪睡</div></div>
+  ${baitPicker('tomorrow',S.bait)}${badLine(d)}`;
+}
+function weekBlock(d){
+  const mon=mondayOf(parseYmd(d));let hits=0;
+  const cells=[...Array(7)].map((_,i)=>{
+    const day=ymd(addDays(mon,i)), r=getDay(day);let cls='',inner='';
+    if(r?.hookAt)hits++;
+    if(r?.fish?.length){cls='hit';inner=`<span data-fish='${JSON.stringify(r.fish[0])}' data-cell="2"></span>`}
+    else if(r?.status==='splash'){cls='splash';inner='<i></i>'}
+    return `<div class="d"><div class="c ${cls} ${day===d?'today':''}">${inner}</div><div class="n">${'一二三四五六日'[i]}</div></div>`;
+  }).join('');
+  return `<h2 style="display:flex;justify-content:space-between"><span>本週漁獲 ${hits}/7</span><span class="dim">一到六準時 4 天＝週日大魚</span></h2><div class="week">${cells}</div>
+  <button class="btn ghost" id="weekShare" style="margin-top:10px">分享本週漁獲卡</button>`;
+}
+
+// ───────── 拍照流程 ─────────
+function showOv(html){$('#ovBody').innerHTML=html;$('#ov').hidden=false;window.scrollTo(0,0)}
+function hideOv(){closeCamera();$('#ov').hidden=true;$('#ovBody').innerHTML='';renderToday()}
+async function shoot(ch){
+  const now=Date.now();let {d,rec}=loadToday(now);
+  if(!rec){rec=Object.assign(newDay(d),{date:d})}
+  if(rec.final)return renderToday();
+  if(!rec.hookAt){rec.bait=[...S.bait];if(!rec.bait.includes(ch))rec.bait=[ch]}
+  const def=CHAINS[ch], n=chainShots(rec,ch).length, step=def.steps[n];
+  if(!step)return;
+  if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的浴室範本');
+  const st=chainState(rec,ch,now);
+  if(rec.hookAt&&st.earliest&&now<st.earliest)return toast(step.fog?`才剛開始洗，${Math.ceil((st.earliest-now)/MIN)} 分鐘後鏡子才會起霧`:`再等 ${Math.ceil((st.earliest-now)/MIN)} 分鐘`);
+  await cameraFlow({title:(rec.hookAt?'收線：':'上鉤：')+step.label,hint:step.hint,round:!!step.cup,deadline:rec.hookAt?st.deadline:atTime(d,rec.target)+HOOK_LATE*MIN,tpl:step.tpl?spotObj().tpl[step.k]:null,
+    onShot:(sig)=>{
+      const fresh=loadToday(Date.now());const r=fresh.rec||rec;r.date=d;
+      if(!r.hookAt)Object.assign(r,{bait:rec.bait,bad:rec.bad,target:rec.target,spot:rec.spot});
+      const res=check(step,sig,r,ch);
+      return {res,commit:()=>commitShot(r,d,ch,step,sig)};
+    }});
+}
+function commitShot(rec,d,ch,step,sig){
+  const now=Date.now();
+  if(!rec.hookAt){
+    const T=atTime(d,rec.target);
+    if(now>T+HOOK_LATE*MIN){rec.final=true;rec.status='miss';rec.wakeAt=now;putDay(d,rec);hideOv();toast('差一點！魚剛剛跑了，起床時間記下來了');return}
+    rec.hookAt=now;rec.hookCh=ch;
+  }
+  rec.shots.push({ch,k:step.k,at:now,center:step.cup==='full'?sig.center:undefined});
+  let caught=null;
+  if(chainShots(rec,ch).length>=CHAINS[ch].steps.length)caught=catchFish(rec,ch);
+  settle(rec,now);putDay(d,rec);
+  if(caught)return showCatch(caught,rec);
+  const first=rec.shots.length===1;
+  hideOv();toast(first?'上鉤了！起床時間 '+hm(now):'收線！');
+  if(first)sfx('hook');
+}
+async function cameraFlow({title,hint,round,deadline,tpl,onShot,register}){
+  showOv(`<div class="ovhead"><b>${esc(title)}</b><button class="x" id="camX" aria-label="關閉">×</button></div>
+  ${deadline?`<div style="text-align:center" class="sub">剩下 <span class="px" style="color:var(--accent)" data-until="${deadline}">--:--</span></div>`:''}
+  <div class="cam" style="margin-top:10px"><video playsinline muted autoplay></video><div class="frame ${round?'round':''}"></div>${tpl?`<img class="tplthumb" src="${tpl.thumb}" alt="範本">`:''}<div class="msg" id="camMsg">${esc(hint||'')}</div></div>
+  <button class="shutter" id="shutter" aria-label="拍照"></button>
+  <p class="dim" style="text-align:center">即時相機・不能從相簿選・比對完照片就丟</p>
+  <div id="camAlt"></div>`);
+  $('#camX').onclick=hideOv;
+  const video=$('#ovBody video');
+  const cd=setInterval(()=>{const el=$('#ovBody [data-until]');if(!el)return clearInterval(cd);const ms=Math.max(0,+el.dataset.until-Date.now());el.textContent=`${pad(Math.floor(ms/60000))}:${pad(Math.floor(ms/1000)%60)}`},500);
+  try{await openCamera(video)}catch(e){$('#camMsg').textContent='打不開相機：請到 iPhone 設定允許 Safari 使用相機';return}
+  $('#shutter').onclick=()=>{
+    const sig=signature(grab(video));
+    if(register){register(sig);return}
+    const {res,commit}=onShot(sig);
+    if(res.ok){sfx('click');commit();return}
+    $('#camMsg').textContent=res.why;
+    const {d}=loadToday(Date.now()), left=MANUAL_PER_WEEK-weekManualCount(d);
+    $('#camAlt').innerHTML=res.noTpl?'':`<button class="btn ghost" id="manualOk" ${left<=0?'disabled':''}>我確定拍對了，算過（本週剩 ${Math.max(0,left)} 次）</button>`;
+    $('#manualOk')?.addEventListener('click',()=>{S.manualLog=[...(S.manualLog||[]),d];save();commit()});
+  };
+}
+function showCatch({f,isNew},rec){
+  closeCamera();sfx('catch');
+  const all=rec.final;
+  showOv(`<div class="catch"><div class="big">釣起來了！</div><div class="fishbox" id="fishbox"></div>
+  <div style="font-size:22px;font-weight:700">${fishName(f)}</div><div class="sub">${'★'.repeat(fishStars(f))} ${STAR_WORD[fishStars(f)]} · ${f.cm} cm${isNew?' · 圖鑑新登錄！':''}</div>
+  ${!all?'<p class="sub">另一條線還在等你，別回床上喔</p>':''}
+  <button class="btn primary" id="catchOk" style="margin-top:10px">${all?'看今天的魚卡':'繼續收線'}</button></div>`);
+  const box=$('#fishbox');box.appendChild(fishCanvas(f,9));
+  for(let i=0;i<14;i++){const p=document.createElement('div');p.className='splashpx';p.style.left='50%';p.style.top='70%';p.style.setProperty('--dx',(Math.random()*240-120)+'px');p.style.setProperty('--dy',(-Math.random()*130)+'px');box.appendChild(p)}
+  $('#catchOk').onclick=hideOv;
+}
+
+// ───────── 分享圖（IG 限動 1080×1920）─────────
+function wrapText(ctx,text,x,y,maxW,lh){let line='';for(const ch of text){if(ctx.measureText(line+ch).width>maxW){ctx.fillText(line,x,y);line=ch;y+=lh}else line+=ch}ctx.fillText(line,x,y);return y}
+async function fontsReady(){try{await document.fonts.load('40px "Press Start 2P"');await document.fonts.load('700 40px "Noto Sans TC"')}catch(e){}}
+async function dayImage(rec){
+  await fontsReady();
+  const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
+  x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);
+  x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,150);
+  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText(md(rec.date),80,220);
+  const fish=rec.fish.length?rec.fish:[null];
+  const H=fish.length>1?640:1100, gap=60;
+  fish.forEach((f,i)=>{
+    const y0=300+i*(H+gap);
+    x.fillStyle='#F4F1EA';x.fillRect(80,y0,920,H);x.strokeStyle='#F2A65A';x.lineWidth=12;x.strokeRect(74,y0-6,932,H+12);
+    const tankH=fish.length>1?280:520;
+    x.fillStyle='#24607A';x.fillRect(120,y0+40,840,tankH);
+    if(f){drawFishOn(x,f,540,y0+40+tankH/2,fish.length>1?20:28);
+      x.fillStyle='#14223A';x.font='700 64px "Noto Sans TC"';x.fillText(fishName(f),120,y0+tankH+130);
+      x.fillStyle='#B5452F';x.font='700 38px "Noto Sans TC"';x.fillText('★'.repeat(fishStars(f))+' '+STAR_WORD[fishStars(f)]+' · '+f.cm+' cm',120,y0+tankH+190);
+      if(fish.length===1){x.fillStyle='#3A4A5E';x.font='38px "Noto Sans TC"';wrapText(x,sp(f.sp).desc+(TRAIT_LINE[f.trait]||''),120,y0+tankH+270,840,58)}
+    }else{
+      x.strokeStyle='#9CC3D3';x.lineWidth=8;x.beginPath();x.ellipse(540,y0+40+tankH/2,90,22,0,0,7);x.stroke();
+      x.globalAlpha=.4;x.beginPath();x.ellipse(540,y0+40+tankH/2,170,44,0,0,7);x.stroke();x.globalAlpha=1;
+      x.fillStyle='#14223A';x.font='700 64px "Noto Sans TC"';x.fillText(rec.status==='splash'?'脫鉤的水花':'只剩一圈漣漪',120,y0+tankH+130);
+      x.fillStyle='#3A4A5E';x.font='38px "Noto Sans TC"';wrapText(x,rec.status==='splash'?'準時起床了，魚跑掉而已。':'今天魚跑了，明天再來。',120,y0+tankH+200,840,58);
+    }
+  });
+  const t=rec.hookAt||rec.wakeAt;
+  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText('起床時間',80,1760);
+  x.fillStyle='#F4F1EA';x.font='72px "Press Start 2P"';x.fillText(t?hm(t):'--:--',80,1860);
+  return c;
+}
+async function weekImage(d){
+  await fontsReady();
+  const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
+  x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);
+  const mon=mondayOf(parseYmd(d));
+  x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,150);
+  x.fillStyle='#F4F1EA';x.font='700 64px "Noto Sans TC"';x.fillText('本週漁獲',80,260);
+  x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText(`${md(ymd(mon))} – ${md(ymd(addDays(mon,6)))}　目標 ${targetFor(d)}`,80,330);
+  let hits=0;
+  for(let i=0;i<7;i++){
+    const day=ymd(addDays(mon,i)),r=getDay(day),y=400+i*200;
+    x.fillStyle=r?.fish?.length?'#24607A':r?.status==='splash'?'#1F3557':'#1B2D4A';x.fillRect(80,y,920,170);
+    x.fillStyle='#B9C4D6';x.font='40px "Noto Sans TC"';x.fillText('一二三四五六日'[i],120,y+100);
+    if(r?.hookAt)hits++;
+    if(r?.fish?.length)drawFishOn(x,r.fish[0],420,y+85,8);
+    else if(r?.status){x.strokeStyle='#9CC3D3';x.lineWidth=6;x.beginPath();x.ellipse(420,y+85,60,14,0,0,7);x.stroke()}
+    const t=r?.hookAt||r?.wakeAt;
+    x.fillStyle=r?.hookAt?'#F4F1EA':'#8E9BB0';x.font='44px "Press Start 2P"';x.fillText(t?hm(t):'--:--',700,y+108);
+  }
+  x.fillStyle='#F2A65A';x.font='700 56px "Noto Sans TC"';x.fillText(`準時 ${hits} / 7 天`,80,1860);
+  return c;
+}
+async function shareCanvas(c,name){
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const file=new File([blob],name,{type:'image/png'});
+  if(navigator.canShare?.({files:[file]})){try{await navigator.share({files:[file]});return}catch(e){if(e.name==='AbortError')return}}
+  showOv(`<div class="ovhead"><b>長按圖片儲存，再發到 IG 限動</b><button class="x" id="shX" aria-label="關閉">×</button></div><img class="shareimg" src="${URL.createObjectURL(blob)}" alt="分享圖">`);
+  $('#shX').onclick=hideOv;
+}
+async function shareDay(d){const rec=getDay(d);if(!rec)return;shareCanvas(await dayImage(rec),`晨釣-${d}.png`)}
+async function shareWeek(d){shareCanvas(await weekImage(d),`晨釣-週-${weekKey(parseYmd(d))}.png`)}
+
+// ───────── 音效 ─────────
+let ac;function sfx(kind){if(S?.sound===false)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const notes=kind==='catch'?[523,659,784,1047]:kind==='hook'?[392,523]:[880];notes.forEach((hz,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=hz;g.gain.setValueAtTime(.06,ac.currentTime+i*.09);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+i*.09+.12);o.connect(g).connect(ac.destination);o.start(ac.currentTime+i*.09);o.stop(ac.currentTime+i*.09+.13)})}catch(e){}}
+
+// ───────── 圖鑑 ─────────
+function renderDex(open){
+  const dex=store.get('dex')||{}, keys=Object.keys(dex), caught=allCaught().length, rod=rodOf(caught);
+  let h=`<section class="hero"><div class="label">圖鑑</div><div class="big" style="font-size:24px">${keys.length} / ${TOTAL_COMBOS.toLocaleString()}</div>
+  <div class="sub">一共釣起 ${caught} 條 · 釣竿：${rod.name}（Lv.${rod.lv+1}）${rod.next?` · 再 ${rod.next-caught} 條升級`:''}</div><div class="dim" style="margin-top:4px">釣竿越好稀有魚越多，但時限永遠不會放寬</div></section>`;
+  if(open){
+    const s=sp(open), mine=keys.filter(k=>k.startsWith(open+'|'));
+    h+=`<button class="btn ghost" id="dexBack" style="margin-top:14px">‹ 回到全部魚種</button><h2>${s.name}　${mine.length} / ${TOTAL_COMBOS/SPECIES.length}</h2><p class="sub">${s.desc}</p><div class="dexgrid">`+
+      mine.map(k=>{const[a,b,c,d]=k.split('|'),f={sp:a,pat:b,pal:c,trait:d};return `<div class="v"><span data-fish='${JSON.stringify(f)}' data-cell="4"></span>${fishName(f)}<span class="dim">×${dex[k].n}</span></div>`}).join('')+`</div>`;
+  }else{
+    h+=`<h2>魚種</h2><div style="display:flex;flex-direction:column;gap:8px">`+SPECIES.map(s=>{
+      const mine=keys.filter(k=>k.startsWith(s.id+'|'));
+      const f=mine.length?(([a,b,c,d])=>({sp:a,pat:b,pal:c,trait:d}))(mine[0].split('|')):{sp:s.id,pat:'plain',pal:'silver',trait:'none'};
+      return `<button class="dexsp" data-sp="${s.id}"><div class="pic ${mine.length?'':'unknown'}"><span data-fish='${JSON.stringify(f)}' data-cell="4"></span></div><div class="info"><b>${mine.length?s.name:'？？？'}</b><span class="dim">${'★'.repeat(s.stars)} · ${s.pool.map(p=>p==='stream'?'溪流':'海邊').join('／')} · ${mine.length} 種</span></div></button>`}).join('')+`</div>`;
+  }
+  const v=$('#viewDex');v.innerHTML=h;
+  v.querySelectorAll('[data-fish]').forEach(el=>el.appendChild(fishCanvas(JSON.parse(el.dataset.fish),+el.dataset.cell)));
+  v.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{if(!keys.some(k=>k.startsWith(b.dataset.sp+'|')))return toast('還沒釣到過');renderDex(b.dataset.sp)});
+  $('#dexBack')?.addEventListener('click',()=>renderDex());
+}
+
+// ───────── 設定 ─────────
+function renderSet(){
+  const now=new Date(),d=ymd(now),thisWk=weekKey(now),nextWk=weekKey(addDays(mondayOf(now),7));
+  const nextVal=S.targets[nextWk]||targetFor(ymd(addDays(mondayOf(now),7)));
+  const spots=Object.entries(S.spots);
+  const sp0=spotObj();
+  let h=`<h2>起床目標</h2><div class="card"><div class="sub">本週（${md(thisWk)} 起）</div><div class="px" style="font-size:22px;margin:6px 0">${targetFor(d)}</div><div class="lock">本週已鎖定，不能在心軟的晚上改</div></div>
+  <label class="f" style="margin-top:10px">下週目標（${md(nextWk)} 起生效）<input type="time" id="nextT" value="${nextVal}" step="300"></label>
+  <p class="dim">研究建議：一週 7 天同一個時間起床，睡不好也一樣；要多睡就提早上床。想提早，一次往前 10–15 分鐘就好。</p>
+  <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${s.water==='sea'?'海邊':'溪流'}）${id===S.spot?' · 使用中':''}</button>`).join('')}
+  <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
+  <h2>「${esc(sp0.name)}」的浴室範本<span class="dim">　洗澡路線用</span></h2><div style="display:flex;flex-direction:column;gap:8px">`+
+  TPL_STEPS.map(([k,l,hint])=>{const t=sp0.tpl?.[k];return `<div class="tplrow">${t?`<img src="${t.thumb}" style="width:44px;height:44px;image-rendering:pixelated" alt="">`:'<div class="ph"></div>'}<div class="t">${l}<div class="dim">${hint}</div></div><button data-tpl="${k}">${t?'重拍':'登記'}</button></div>`}).join('')+`</div>
+  <p class="dim">範本只存成一組顏色數字和一張 16×16 的小縮圖，看不出照片內容。</p>
+  <h2>其他</h2><div style="display:flex;flex-direction:column;gap:8px">
+  <div class="card sub">壞夜卡：本月剩 ${Math.max(0,BAD_PER_MONTH-monthBadCount(d))} 張・手動算過：本週剩 ${Math.max(0,MANUAL_PER_WEEK-weekManualCount(d))} 次</div>
+  <button class="btn" id="soundBtn">音效：${S.sound===false?'關':'開'}</button>
+  <div class="row"><button class="btn" id="exportBtn">匯出備份</button><button class="btn" id="importBtn">匯入備份</button></div>
+  <p class="dim">資料只存在這支手機的瀏覽器裡。換手機或清除 Safari 資料前記得匯出。${S.lastBackup?'上次備份：'+md(S.lastBackup):'還沒備份過'}</p>
+  <p class="dim">版本 ${APP_VERSION}</p></div>`;
+  const v=$('#viewSet');v.innerHTML=h;
+  $('#nextT').onchange=e=>{S.targets[nextWk]=e.target.value;save();toast(`下週起改成 ${e.target.value}`)};
+  v.querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{S.spot=b.dataset.spot;save();renderSet();toast('釣點換成：'+spotObj().name)});
+  $('#addSpot').onclick=addSpot;
+  v.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.tpl));
+  $('#soundBtn').onclick=()=>{S.sound=S.sound===false;save();renderSet()};
+  $('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();
+}
+function registerTpl(k,after){
+  const [_,l,hint]=TPL_STEPS.find(t=>t[0]===k);
+  cameraFlow({title:'登記範本：'+l,hint,register:sig=>{const sp=spotObj();sp.tpl=sp.tpl||{};sp.tpl[k]=sig;save();closeCamera();$('#ov').hidden=true;toast('範本存好了：'+l);if(after)after();else{renderSet()}}});
+}
+function addSpot(){
+  showOv(`<div class="ovhead"><b>新增釣點</b><button class="x" id="spX" aria-label="關閉">×</button></div>
+  <label class="f">名字<input id="spName" placeholder="例如：台南飯店" maxlength="12"></label>
+  <label class="f" style="margin-top:12px">水域（決定釣得到哪些魚）<select id="spWater"><option value="sea">海邊／水庫</option><option value="stream">溪流</option></select></label>
+  <p class="dim">建好之後到「設定」登記這裡的浴室範本；沒有咖啡就用「水」路線。</p>
+  <button class="btn primary" id="spOk" style="margin-top:12px">建立並切換過去</button>`);
+  $('#spX').onclick=hideOv;
+  $('#spOk').onclick=()=>{const n=$('#spName').value.trim();if(!n)return toast('取個名字');const id='s'+Date.now();S.spots[id]={name:n,water:$('#spWater').value,tpl:{}};S.spot=id;save();hideOv();showTab('Set')};
+}
+function exportData(){
+  const all={app:'morning-fishing',v:1,at:new Date().toISOString(),data:{}};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);all.data[k]=store.get(k)}
+  const blob=new Blob([JSON.stringify(all)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`晨釣備份-${ymd(new Date())}.json`;a.click();
+  S.lastBackup=ymd(new Date());save();setTimeout(renderSet,300);
+}
+$('#importFile').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());if(j.app!=='morning-fishing')throw 0;
+    Object.entries(j.data).forEach(([k,v])=>store.set(k,v));S=store.get('settings');toast('匯入完成');showTab('Today')}
+  catch(err){toast('這不是晨釣的備份檔')}
+  e.target.value='';
+};
+
+// ───────── 第一次使用 ─────────
+function onboarding(step=0){
+  const steps=[
+   ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div class="logo" style="font-size:18px">晨釣</div>
+    <div style="font-size:22px;font-weight:700;line-height:1.5">每天在固定時間起床，<br>就能釣到一條魚。</div>
+    <div class="card" style="line-height:1.8;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤<br>② 照順序拍完路線（洗澡、咖啡、水）＝把魚釣起來<br>③ 越早上鉤，魚越稀有；兩條路線都完成，多一條魚<br>④ 沒起來也不扣分，只是今天的魚跑了</div>
+    <button class="btn primary" id="obNext">開始設定</button></div>`,
+   ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">這週幾點起床？</div>
+    <label class="f">本週目標<input type="time" id="obT" value="08:30" step="300"></label>
+    <p class="dim">訂在你現在做得到的時間，不要直接訂理想的時間。本週設定後就鎖住，下週的目標可以在設定裡改。</p>
+    <div class="card sub" style="line-height:1.7">iPhone 鬧鐘設這個時間、<b>只設一顆、關掉貪睡</b>，手機放在離床最遠的地方充電。</div>
+    <button class="btn primary" id="obNext">下一步</button></div>`,
+   ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">登記家裡的浴室範本</div>
+    <p class="sub">洗澡路線要拿這三張來比對。現在就可以拍（鏡子要沒起霧的）；也可以之後再到設定登記。</p>
+    <div style="display:flex;flex-direction:column;gap:8px">${TPL_STEPS.map(([k,l,hint])=>`<div class="tplrow"><div class="t">${l}<div class="dim">${hint}</div></div><button data-obtpl="${k}">${S.spots.home.tpl?.[k]?'已登記 ✓':'登記'}</button></div>`).join('')}</div>
+    <button class="btn primary" id="obNext">完成</button></div>`
+  ];
+  showOv(steps[step]());
+  $('#ovBody').querySelectorAll('[data-obtpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.obtpl,()=>onboarding(2)));
+  $('#obNext').onclick=()=>{
+    if(step===1){S.targets[weekKey(new Date())]=$('#obT').value||'08:30';save()}
+    if(step<2)return onboarding(step+1);
+    if(!hasShowerTpl())S.bait=['coffee'];save();
+    hideOv();
+  };
+}
+
+// ───────── 分頁、更新 ─────────
+function showTab(t){
+  ['Today','Dex','Set'].forEach(x=>{$('#view'+x).hidden=x!==t});
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  if(t==='Today')renderToday();if(t==='Dex')renderDex();if(t==='Set')renderSet();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+$('#spotChip').onclick=()=>showTab('Set');
+let latest=null;
+async function checkUpdate(){
+  if(APP_VERSION==='dev')return;
+  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+    if(j.version&&j.version!==APP_VERSION){latest=j.version;$('#updateText').textContent=j.notes?`有新版本：${j.notes}`:'有新版本';$('#updateBar').hidden=false}}catch(e){}
+}
+$('#updateBtn').onclick=()=>{location.href=location.pathname+'?v='+(latest||Date.now())};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkUpdate();if(!$('#viewToday').hidden&&$('#ov').hidden)renderToday()}else closeCamera()});
+
+if(!S){S={targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'stream',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
+else showTab('Today');
+checkUpdate();
+try{navigator.storage?.persist?.()}catch(e){}
+</script>
+</body>
+</html>
