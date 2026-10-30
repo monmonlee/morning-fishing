@@ -305,7 +305,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0224';
+const APP_VERSION='2026.10.31-0227';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -598,6 +598,7 @@ function renderToday(){
   v.querySelectorAll('[data-bait]').forEach(b=>b.onclick=()=>toggleBait(b.dataset.bait,b.dataset.for));
   v.querySelectorAll('[data-shoot]').forEach(b=>b.onclick=()=>shoot(b.dataset.shoot));
   v.querySelector('#badBtn')?.addEventListener('click',useBad);
+  v.querySelector('#badUndo')?.addEventListener('click',undoBad);
   v.querySelector('#wakeBtn')?.addEventListener('click',()=>{const {d,rec}=loadToday(Date.now());const r=rec||Object.assign(newDay(d),{date:d,final:true,status:'miss'});r.wakeAt=Date.now();putDay(d,r);toast('記下來了：'+hm(r.wakeAt)+' 起床');renderToday()});
   v.querySelector('#weekShare')?.addEventListener('click',()=>shareWeek(d));
   v.querySelector('#dayShare')?.addEventListener('click',()=>shareDay(d));
@@ -624,7 +625,7 @@ const hasShowerTpl=()=>SHOWER_TPL.every(([k])=>spotObj().tpl?.[k]);
 function badLine(d){
   const used=monthBadCount(d), left=BAD_PER_MONTH-used, tomorrow=ymd(addDays(parseYmd(d),1));
   const forDay=new Date().getHours()<12?d:tomorrow;
-  if(S.badFor===forDay)return `<div class="card" style="margin-top:12px">壞夜卡已用：${md(forDay)} 一樣要準時上鉤，收線時限放寬 1.5 倍；當天 15:00 前可以午睡 20 分鐘。</div>`;
+  if(S.badFor===forDay){const r=getDay(forDay),canUndo=!r?.hookAt&&!r?.final;return `<div class="card" style="margin-top:12px">壞夜卡已用：${md(forDay)} 一樣要準時上鉤，收線時限放寬 1.5 倍；當天 15:00 前可以午睡 20 分鐘。${canUndo?'<button class="btn ghost" id="badUndo" style="margin-top:10px">按錯了，取消（卡片退回）</button>':''}</div>`}
   return `<button class="btn ghost" id="badBtn" style="margin-top:12px" ${left<=0?'disabled':''}>壞夜卡：睡不好也要起來，但時限放寬（本月剩 ${Math.max(0,left)} 張）</button>`;
 }
 function useBad(){
@@ -643,6 +644,11 @@ function pondHTML(biting,shadowFish){
 const SHADOW_FISH={sp:'ayu',pat:'plain',pal:'ink',trait:'none'};
 const GEM=['','#B9C4D6','#4AA3DF','#9B7BD4','#FFD58A','#FFD58A'];
 const gemSvg=c=>`<svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="${c}" d="M3 0h2v1h1v1h1v1h1v2H7v1H6v1H5v1H3V7H2V6H1V5H0V3h1V2h1V1h1z"/><path fill="#fff" opacity=".6" d="M3 1h1v1H3zM2 2h1v1H2z"/></svg>`;
+function undoBad(){
+  const f=S.badFor;if(!f)return;const r=getDay(f);if(r?.hookAt||r?.final)return toast('已經開始釣了，不能取消');
+  const i=(S.badLog||[]).lastIndexOf(f);if(i>=0)S.badLog.splice(i,1);S.badFor=null;save();
+  if(r){r.bad=false;putDay(f,r)}toast('取消了，壞夜卡退回');renderToday();
+}
 function beforeBlock(d,target){
   return `<section class="hero"><div class="label">${md(d)} 魚訊</div><div class="big">${target}</div><div class="note">鬧鐘響後 3 分鐘內上鉤</div></section>
   ${pondHTML(false,SHADOW_FISH)}
