@@ -185,6 +185,13 @@ label.f input,label.f select{min-height:46px;background:var(--panel);border:2px 
 .tplrow .t{flex:1;font-size:14px}
 .tplrow button{min-height:40px;padding:6px 12px;background:var(--line);border:2px solid var(--line2);font-size:13px}
 .lock{font-size:12px;color:var(--dim)}
+.dchips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
+.dchip{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;background:var(--panel);border:2px solid var(--line2);clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px)}
+.dchip span{font-size:13px;color:var(--sub)}
+.dchip b{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.dchip.today{border-color:var(--accent)}
+.dchip.lock{opacity:.55}
+.dchip input{position:absolute;inset:0;width:100%;height:100%;opacity:.011;border:none;background:none;font-size:16px}
 .shareimg{width:100%;border:3px solid var(--line2)}
 /* ── 晨霧湖畔 16-bit ── */
 :root{--sky1:#1A2340;--sky2:#4B3F72;--sky3:#C9707A;--sky4:#F2A65A;--sky5:#FFD58A;
@@ -305,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0241';
+const APP_VERSION='2026.10.31-0245';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -990,13 +997,13 @@ function renderSet(){
   const spots=Object.entries(S.spots);
   const sp0=spotObj();
   const daily=S.mode!=='weekly', dow=now.getDay(), todayLocked=Date.now()>=atTime(d,targetFor(d))-HOOK_EARLY*MIN;
-  const dayRows=[1,2,3,4,5,6,0].map(w=>{const lock=w===dow&&todayLocked;return `<label class="f" style="flex-direction:row;align-items:center;justify-content:space-between"><span>星期${WD[w]}${w===dow?'（今天）':''}${lock?'<br><span class="lock">魚訊已開始，明天起才能改</span>':''}</span><input type="time" data-dow="${w}" value="${S.days?.[w]||weeklyTarget(d)}" step="300" ${lock?'disabled':''} style="width:140px"></label>`}).join('');
+  const dayRows=[1,2,3,4,5,6,0].map(w=>{const lock=w===dow&&todayLocked,t=S.days?.[w]||weeklyTarget(d);return `<label class="dchip ${w===dow?'today':''} ${lock?'lock':''}"><span>${WD[w]}</span><b>${t}</b><input type="time" data-dow="${w}" value="${t}" step="300" ${lock?'disabled':''} aria-label="星期${WD[w]}起床時間"></label>`}).join('');
   let h=`<h2>起床目標</h2><div class="row"><button class="btn ${daily?'primary':''}" id="modeDaily">每天自己設</button><button class="btn ${daily?'':'primary'}" id="modeWeekly">每週一個時間</button></div>
-  ${daily?`<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${dayRows}</div>
-  <p class="dim">試用模式：每天可以不同時間。今天的魚訊開始後（目標前 ${HOOK_EARLY} 分鐘）就不能改今天，避免早上心軟。</p>`:
+  ${daily?`<div class="dchips">${dayRows}</div>
+  <p class="dim">點時間就能改。${todayLocked?'今天的魚訊已開始，今天鎖住了。':'目標前 90 分鐘起，當天就鎖住。'}</p>`:
   `<div class="card" style="margin-top:12px"><div class="sub">本週（${md(thisWk)} 起）</div><div class="px" style="font-size:22px;margin:6px 0">${weeklyTarget(d)}</div><div class="lock">本週已鎖定，不能在心軟的晚上改</div></div>
   <label class="f" style="margin-top:10px">下週目標（${md(nextWk)} 起生效）<input type="time" id="nextT" value="${nextVal}" step="300"></label>`}
-  <p class="dim">研究建議：一週 7 天同一個時間起床，睡不好也一樣；要多睡就提早上床。想提早，一次往前 10–15 分鐘就好。</p>
+  <p class="dim">建議每天同一時間；想提早，一次往前 10–15 分鐘。</p>
   <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${s.water==='sea'?'海邊':'溪流'}）${id===S.spot?' · 使用中':''}</button>`).join('')}
   <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
   <h2>「${esc(sp0.name)}」的範本</h2>`+
@@ -1014,7 +1021,7 @@ function renderSet(){
   $('#nextT')?.addEventListener('change',e=>{S.targets[nextWk]=e.target.value;save();toast(`下週起改成 ${e.target.value}`)});
   $('#modeDaily').onclick=()=>{S.mode='daily';save();syncTodayTarget();renderSet()};
   $('#modeWeekly').onclick=()=>{S.mode='weekly';save();syncTodayTarget();renderSet()};
-  v.querySelectorAll('[data-dow]').forEach(inp=>inp.onchange=()=>{S.days=S.days||{};S.days[inp.dataset.dow]=inp.value;save();syncTodayTarget();toast(`星期${WD[inp.dataset.dow]}改成 ${inp.value}`)});
+  v.querySelectorAll('[data-dow]').forEach(inp=>inp.onchange=()=>{if(!inp.value)return;S.days=S.days||{};S.days[inp.dataset.dow]=inp.value;save();syncTodayTarget();toast(`星期${WD[inp.dataset.dow]}改成 ${inp.value}`);renderSet()});
   v.querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{S.spot=b.dataset.spot;save();renderSet();toast('釣點換成：'+spotObj().name)});
   $('#addSpot').onclick=addSpot;
   v.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.tpl));
