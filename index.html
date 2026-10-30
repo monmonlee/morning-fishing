@@ -305,7 +305,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0209';
+const APP_VERSION='2026.10.31-0214';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -431,10 +431,15 @@ let S=store.get('settings');
 const getDay=d=>store.get('day:'+d);
 const putDay=(d,v)=>store.set('day:'+d,v);
 function save(){store.set('settings',S)}
-function targetFor(dstr){
+function weeklyTarget(dstr){
   const wk=weekKey(parseYmd(dstr)), keys=Object.keys(S.targets).sort();
   let t=null;for(const k of keys){if(k<=wk)t=S.targets[k]}
   return t||S.targets[keys[0]]||'08:30';
+}
+// 每天自訂（星期幾各自一個時間）；沒設的那天用每週目標
+function targetFor(dstr){
+  if(S.mode!=='weekly'){const t=S.days?.[parseYmd(dstr).getDay()];if(t)return t}
+  return weeklyTarget(dstr);
 }
 function spotObj(){return S.spots[S.spot]||S.spots.home}
 function monthBadCount(d){const m=d.slice(0,7);return (S.badLog||[]).filter(x=>x.startsWith(m)).length}
@@ -925,8 +930,13 @@ function renderSet(){
   const nextVal=S.targets[nextWk]||targetFor(ymd(addDays(mondayOf(now),7)));
   const spots=Object.entries(S.spots);
   const sp0=spotObj();
-  let h=`<h2>起床目標</h2><div class="card"><div class="sub">本週（${md(thisWk)} 起）</div><div class="px" style="font-size:22px;margin:6px 0">${targetFor(d)}</div><div class="lock">本週已鎖定，不能在心軟的晚上改</div></div>
-  <label class="f" style="margin-top:10px">下週目標（${md(nextWk)} 起生效）<input type="time" id="nextT" value="${nextVal}" step="300"></label>
+  const daily=S.mode!=='weekly', dow=now.getDay(), todayLocked=Date.now()>=atTime(d,targetFor(d))-HOOK_EARLY*MIN;
+  const dayRows=[1,2,3,4,5,6,0].map(w=>{const lock=w===dow&&todayLocked;return `<label class="f" style="flex-direction:row;align-items:center;justify-content:space-between"><span>星期${WD[w]}${w===dow?'（今天）':''}${lock?'<br><span class="lock">魚訊已開始，明天起才能改</span>':''}</span><input type="time" data-dow="${w}" value="${S.days?.[w]||weeklyTarget(d)}" step="300" ${lock?'disabled':''} style="width:140px"></label>`}).join('');
+  let h=`<h2>起床目標</h2><div class="row"><button class="btn ${daily?'primary':''}" id="modeDaily">每天自己設</button><button class="btn ${daily?'':'primary'}" id="modeWeekly">每週一個時間</button></div>
+  ${daily?`<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${dayRows}</div>
+  <p class="dim">試用模式：每天可以不同時間。今天的魚訊開始後（目標前 ${HOOK_EARLY} 分鐘）就不能改今天，避免早上心軟。</p>`:
+  `<div class="card" style="margin-top:12px"><div class="sub">本週（${md(thisWk)} 起）</div><div class="px" style="font-size:22px;margin:6px 0">${weeklyTarget(d)}</div><div class="lock">本週已鎖定，不能在心軟的晚上改</div></div>
+  <label class="f" style="margin-top:10px">下週目標（${md(nextWk)} 起生效）<input type="time" id="nextT" value="${nextVal}" step="300"></label>`}
   <p class="dim">研究建議：一週 7 天同一個時間起床，睡不好也一樣；要多睡就提早上床。想提早，一次往前 10–15 分鐘就好。</p>
   <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${s.water==='sea'?'海邊':'溪流'}）${id===S.spot?' · 使用中':''}</button>`).join('')}
   <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
@@ -941,7 +951,10 @@ function renderSet(){
   <p class="dim">資料只存在這支手機的瀏覽器裡。換手機或清除 Safari 資料前記得匯出。${S.lastBackup?'上次備份：'+md(S.lastBackup):'還沒備份過'}</p>
   <p class="dim">版本 ${APP_VERSION}</p></div>`;
   const v=$('#viewSet');v.innerHTML=h;
-  $('#nextT').onchange=e=>{S.targets[nextWk]=e.target.value;save();toast(`下週起改成 ${e.target.value}`)};
+  $('#nextT')?.addEventListener('change',e=>{S.targets[nextWk]=e.target.value;save();toast(`下週起改成 ${e.target.value}`)});
+  $('#modeDaily').onclick=()=>{S.mode='daily';save();syncTodayTarget();renderSet()};
+  $('#modeWeekly').onclick=()=>{S.mode='weekly';save();syncTodayTarget();renderSet()};
+  v.querySelectorAll('[data-dow]').forEach(inp=>inp.onchange=()=>{S.days=S.days||{};S.days[inp.dataset.dow]=inp.value;save();syncTodayTarget();toast(`星期${WD[inp.dataset.dow]}改成 ${inp.value}`)});
   v.querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{S.spot=b.dataset.spot;save();renderSet();toast('釣點換成：'+spotObj().name)});
   $('#addSpot').onclick=addSpot;
   v.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.tpl));
@@ -949,6 +962,8 @@ function renderSet(){
   $('#musicBtn2').onclick=()=>{$('#musBtn').click();renderSet()};
   $('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();
 }
+// 今天還沒開始的話，跟著新的目標時間走
+function syncTodayTarget(){const d=ymd(new Date()),r=getDay(d);if(r&&!r.hookAt&&!r.final&&Date.now()<atTime(d,r.target)-HOOK_EARLY*MIN){r.target=targetFor(d);putDay(d,r)}}
 function registerTpl(k,after){
   const [_,l,hint]=TPL_STEPS.find(t=>t[0]===k);
   cameraFlow({title:'登記範本：'+l,hint,register:sig=>{const sp=spotObj();sp.tpl=sp.tpl||{};sp.tpl[k]=sig;save();closeCamera();$('#ov').hidden=true;toast('範本存好了：'+l);if(after)after();else{renderSet()}}});
@@ -984,9 +999,9 @@ function onboarding(step=0){
     <div style="font-size:22px;font-weight:700;line-height:1.5">每天在固定時間起床，<br>就能釣到一條魚。</div>
     <div class="card" style="line-height:1.8;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤<br>② 照順序拍完路線（洗澡、咖啡、水）＝把魚釣起來<br>③ 越早上鉤，魚越稀有；兩條路線都完成，多一條魚<br>④ 沒起來也不扣分，只是今天的魚跑了</div>
     <button class="btn primary" id="obNext">開始設定</button></div>`,
-   ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">這週幾點起床？</div>
+   ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">平常幾點起床？</div>
     <label class="f">本週目標<input type="time" id="obT" value="08:30" step="300"></label>
-    <p class="dim">訂在你現在做得到的時間，不要直接訂理想的時間。本週設定後就鎖住，下週的目標可以在設定裡改。</p>
+    <p class="dim">訂在你現在做得到的時間，不要直接訂理想的時間。之後可以在「設定」把星期一到日各自調整。</p>
     <div class="card sub" style="line-height:1.7">iPhone 鬧鐘設這個時間、<b>只設一顆、關掉貪睡</b>，手機放在離床最遠的地方充電。</div>
     <button class="btn primary" id="obNext">下一步</button></div>`,
    ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">登記家裡的浴室範本</div>
@@ -1023,7 +1038,7 @@ async function checkUpdate(){
 $('#updateBtn').onclick=()=>{location.href=location.pathname+'?v='+(latest||Date.now())};
 document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.visibilityState==='visible'){setPhase();checkUpdate();if(!$('#viewToday').hidden&&$('#ov').hidden)renderToday();else playBgm(wantBgm)}else{closeCamera();stopBgm()}});
 
-if(!S){S={targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'stream',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
+if(!S){S={mode:'daily',targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'stream',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
 else showTab('Today');
 syncMusBtn();
 checkUpdate();
