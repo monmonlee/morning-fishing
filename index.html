@@ -66,7 +66,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:22px 0 10px}
 .pond.biting .bob{animation:bob .5s steps(2) infinite}
 @keyframes bob{50%{transform:translateY(8px)}}
 .pond .shadow{position:absolute;bottom:14px;left:16%;opacity:.45;animation:swim 7s linear infinite}
-@keyframes swim{0%{transform:translateX(-30px)}50%{transform:translateX(150px)}100%{transform:translateX(-30px)}}
+@keyframes swim{0%{transform:translateX(-30px) scaleX(-1)}47%{transform:translateX(150px) scaleX(-1)}50%{transform:translateX(150px) scaleX(1)}97%{transform:translateX(-30px) scaleX(1)}100%{transform:translateX(-30px) scaleX(-1)}}
 .countdown{font-family:var(--px);font-size:42px;text-align:center;margin:8px 0 2px}
 .tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:12px;text-align:center;margin-top:10px}
 .tiers div{padding:8px 4px;background:var(--panel);color:var(--sub)}
@@ -305,7 +305,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0214';
+const APP_VERSION='2026.10.31-0218';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -340,13 +340,16 @@ const CHAINS={
     {k:'head',label:'正在出水的蓮蓬頭',tpl:true,after:[0,3],hint:'手機放洗手台，拍出水的蓮蓬頭'},
     {k:'mirror',label:'起霧的鏡子',tpl:true,fog:true,after:[10,30],hint:'洗完澡，拍起霧的鏡子'}]},
   coffee:{name:'咖啡',short:'滿杯→空杯',steps:[
-    {k:'full',label:'滿杯咖啡',cup:'full',hint:'杯口放進圓框裡'},
-    {k:'empty',label:'喝完的空杯',cup:'empty',after:[2,30],hint:'同一個杯子，喝完再拍'}]},
+    {k:'full',label:'滿杯咖啡',cup:'full',opt:'cup',hint:'杯口放進圓框裡'},
+    {k:'empty',label:'喝完的空杯',cup:'empty',opt:'cup',optLoose:true,after:[2,30],hint:'同一個杯子，喝完再拍'}]},
   water:{name:'水',short:'一杯水→空杯',steps:[
-    {k:'cup',label:'一杯水或瓶裝水',hint:'拍你的水杯或水瓶'},
+    {k:'cup',label:'一杯水或瓶裝水',opt:'bottle',hint:'拍你的水杯或水瓶'},
     {k:'wempty',label:'喝完的空杯／空瓶',after:[1,30],hint:'喝完再拍'}]}
 };
-const TPL_STEPS=[['towel','浴巾','平常掛的地方'],['head','正在出水的蓮蓬頭','打開水，從洗手台的位置拍'],['mirror','浴室鏡子（沒起霧）','現在就拍，之後拿來比對有沒有起霧']];
+const SHOWER_TPL=[['towel','浴巾','平常掛的地方'],['head','正在出水的蓮蓬頭','打開水，從洗手台的位置拍'],['mirror','浴室鏡子（沒起霧）','現在就拍，之後拿來比對有沒有起霧']];
+const OPT_TPL=[['cup','咖啡杯（裝滿的）','拍你平常用的杯子；登記後換別的杯子就不算'],['bottle','水杯或水瓶','選填；沒登記就只看有沒有拍']];
+const TPL_STEPS=[...SHOWER_TPL,...OPT_TPL];
+const TPL_GROUPS=[['洗澡','必登記才能用洗澡路線',SHOWER_TPL],['咖啡','選填：登記了就會比對是不是你的杯子',[OPT_TPL[0]]],['水','選填',[OPT_TPL[1]]]];
 
 // ───────── 魚 ─────────
 // o 背／輪廓、b 身體（花紋畫在這）、w 肚子、f 鰭、e 眼睛、m 鬍鬚
@@ -564,6 +567,8 @@ function check(step,sig,rec,ch){
     }
     return sim>=.55?{ok:true}:{ok:false,why:`跟範本不太像（${Math.round(sim*100)} 分），換個角度再拍`};
   }
+  const otpl=step.opt&&(S.spots[rec?rec.spot:S.spot]||{}).tpl?.[step.opt];
+  if(otpl){const sim=similarity(sig,otpl);if(sim<(step.optLoose?.4:.5))return {ok:false,why:`看起來不是登記的${step.opt==='cup'?'杯子':'水杯'}（${Math.round(sim*100)} 分）`}}
   if(step.cup==='empty'){
     const full=chainShots(rec,ch)[0];
     if(full?.center&&cdist(full.center,sig.center)<30)return {ok:false,why:'杯子中間看起來還是滿的'};
@@ -615,7 +620,7 @@ function toggleBait(c,forWhat){
   if(forWhat==='today'&&rec&&!rec.hookAt&&!rec.final){rec.bait=[...b];putDay(d,rec)}
   renderToday();
 }
-const hasShowerTpl=()=>TPL_STEPS.every(([k])=>spotObj().tpl?.[k]);
+const hasShowerTpl=()=>SHOWER_TPL.every(([k])=>spotObj().tpl?.[k]);
 function badLine(d){
   const used=monthBadCount(d), left=BAD_PER_MONTH-used, tomorrow=ymd(addDays(parseYmd(d),1));
   const forDay=new Date().getHours()<12?d:tomorrow;
@@ -759,7 +764,7 @@ async function shoot(ch){
   if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的浴室範本');
   const st=chainState(rec,ch,now);
   if(rec.hookAt&&st.earliest&&now<st.earliest)return toast(step.fog?`才剛開始洗，${Math.ceil((st.earliest-now)/MIN)} 分鐘後鏡子才會起霧`:`再等 ${Math.ceil((st.earliest-now)/MIN)} 分鐘`);
-  await cameraFlow({title:(rec.hookAt?'收線：':'上鉤：')+step.label,hint:step.hint,round:!!step.cup,deadline:rec.hookAt?st.deadline:atTime(d,rec.target)+HOOK_LATE*MIN,tpl:step.tpl?spotObj().tpl[step.k]:null,
+  await cameraFlow({title:(rec.hookAt?'收線：':'上鉤：')+step.label,hint:step.hint,round:!!step.cup,deadline:rec.hookAt?st.deadline:atTime(d,rec.target)+HOOK_LATE*MIN,tpl:step.tpl?spotObj().tpl[step.k]:step.opt?spotObj().tpl?.[step.opt]:null,
     onShot:(sig)=>{
       const fresh=loadToday(Date.now());const r=fresh.rec||rec;r.date=d;
       if(!r.hookAt)Object.assign(r,{bait:rec.bait,bad:rec.bad,target:rec.target,spot:rec.spot});
@@ -940,8 +945,9 @@ function renderSet(){
   <p class="dim">研究建議：一週 7 天同一個時間起床，睡不好也一樣；要多睡就提早上床。想提早，一次往前 10–15 分鐘就好。</p>
   <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${s.water==='sea'?'海邊':'溪流'}）${id===S.spot?' · 使用中':''}</button>`).join('')}
   <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
-  <h2>「${esc(sp0.name)}」的浴室範本<span class="dim">　洗澡路線用</span></h2><div style="display:flex;flex-direction:column;gap:8px">`+
-  TPL_STEPS.map(([k,l,hint])=>{const t=sp0.tpl?.[k];return `<div class="tplrow">${t?`<img src="${t.thumb}" style="width:44px;height:44px;image-rendering:pixelated" alt="">`:'<div class="ph"></div>'}<div class="t">${l}<div class="dim">${hint}</div></div><button data-tpl="${k}">${t?'重拍':'登記'}</button></div>`}).join('')+`</div>
+  <h2>「${esc(sp0.name)}」的範本</h2>`+
+  TPL_GROUPS.map(([g,gn,list])=>`<div class="sub" style="margin:12px 0 6px">${g}<span class="dim">　${gn}</span></div><div style="display:flex;flex-direction:column;gap:8px">`+
+  list.map(([k,l,hint])=>{const t=sp0.tpl?.[k];return `<div class="tplrow">${t?`<img src="${t.thumb}" style="width:44px;height:44px;image-rendering:pixelated" alt="">`:'<div class="ph"></div>'}<div class="t">${l}<div class="dim">${hint}</div></div>${t&&g!=='洗澡'?`<button data-untpl="${k}">刪除</button>`:''}<button data-tpl="${k}">${t?'重拍':'登記'}</button></div>`}).join('')+`</div>`).join('')+`
   <p class="dim">範本只存成一組顏色數字和一張 16×16 的小縮圖，看不出照片內容。</p>
   <h2>其他</h2><div style="display:flex;flex-direction:column;gap:8px">
   <div class="card sub">壞夜卡：本月剩 ${Math.max(0,BAD_PER_MONTH-monthBadCount(d))} 張・手動算過：本週剩 ${Math.max(0,MANUAL_PER_WEEK-weekManualCount(d))} 次</div>
@@ -958,6 +964,7 @@ function renderSet(){
   v.querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{S.spot=b.dataset.spot;save();renderSet();toast('釣點換成：'+spotObj().name)});
   $('#addSpot').onclick=addSpot;
   v.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.tpl));
+  v.querySelectorAll('[data-untpl]').forEach(b=>b.onclick=()=>{delete spotObj().tpl[b.dataset.untpl];save();renderSet();toast('刪掉了，之後就不比對杯子')});
   $('#soundBtn').onclick=()=>{S.sound=S.sound===false;save();renderSet()};
   $('#musicBtn2').onclick=()=>{$('#musBtn').click();renderSet()};
   $('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();
@@ -1006,7 +1013,7 @@ function onboarding(step=0){
     <button class="btn primary" id="obNext">下一步</button></div>`,
    ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">登記家裡的浴室範本</div>
     <p class="sub">洗澡路線要拿這三張來比對。現在就可以拍（鏡子要沒起霧的）；也可以之後再到設定登記。</p>
-    <div style="display:flex;flex-direction:column;gap:8px">${TPL_STEPS.map(([k,l,hint])=>`<div class="tplrow"><div class="t">${l}<div class="dim">${hint}</div></div><button data-obtpl="${k}">${S.spots.home.tpl?.[k]?'已登記 ✓':'登記'}</button></div>`).join('')}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">${SHOWER_TPL.map(([k,l,hint])=>`<div class="tplrow"><div class="t">${l}<div class="dim">${hint}</div></div><button data-obtpl="${k}">${S.spots.home.tpl?.[k]?'已登記 ✓':'登記'}</button></div>`).join('')}</div>
     <button class="btn primary" id="obNext">完成</button></div>`
   ];
   showOv(steps[step]());
