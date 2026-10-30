@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0300';
+const APP_VERSION='2026.10.31-0305';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -604,9 +604,12 @@ function renderToday(){
   else if(now>T+HOOK_LATE*MIN) h+=missedBlock(d,target)+tomorrowBlock(d);
   else h+=beforeBlock(d,target);
   const busy=rec?.hookAt&&!rec.final || (!rec?.final&&now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN);
-  if(!busy)h=readyBlock(d)+backupBlock(d)+h;
+  if(!busy)h=readyBlock(d)+backupBlock(d)+sleepBlock(now)+h;
   h+=weekBlock(d)+trendBlock(d);
   v.innerHTML=h;
+  v.querySelector('#sleepBtn')?.addEventListener('click',()=>{saveSleep(Date.now());sfx('tap');toast('晚安，記下來了');renderToday()});
+  v.querySelector('#sleepT')?.addEventListener('change',e=>{const md0=sleepDay(Date.now()),r=getDay(md0);if(!r||!e.target.value)return;
+    const [hh,mm]=e.target.value.split(':').map(Number),base=parseYmd(md0);if(hh>=12)base.setDate(base.getDate()-1);base.setHours(hh,mm,0,0);r.sleepAt=base.getTime();putDay(md0,r);toast('入睡時間改成 '+e.target.value);renderToday()});
   v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData();else if(g==='safari'){S.safariOk=true;save();renderToday();toast('好，之後都從 Safari 玩')}});
   // 放上像素魚
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
@@ -631,6 +634,18 @@ function readyBlock(d){
   if(!S.alarmOk)items.push(['iPhone 鬧鐘',`設 ${targetFor(ymd(addDays(parseYmd(d),1)))} 一顆、關掉貪睡、手機放遠一點`,'alarm','設好了']);
   if(!items.length)return '';
   return `<h2>開始前的準備 <span class="dim">${items.length} 件</span></h2><div style="display:flex;flex-direction:column;gap:8px">${items.map(([t,sub,go,btn])=>`<div class="tplrow"><div class="t">${t}<div class="dim">${sub}</div></div><button data-go="${go}">${btn}</button></div>`).join('')}</div>`;
+}
+// 🌙 入睡紀錄：只記不管，存在「隔天早上」那天的紀錄裡（中午前按＝今天早上）
+function sleepDay(now){const t=new Date(now);return t.getHours()<12?ymd(t):ymd(addDays(t,1))}
+function sleepBlock(now){
+  const h=new Date(now).getHours(), md0=sleepDay(now), r=getDay(md0);
+  if(r?.sleepAt)return `<div class="tplrow" style="margin-top:12px"><div class="t">🌙 已記錄入睡 <b class="px" style="font-size:12px">${hm(r.sleepAt)}</b><div class="dim">${md(md0)}早上那天的前一晚・時間不對可以改</div></div><input type="time" id="sleepT" value="${hm(r.sleepAt)}" aria-label="修改入睡時間" style="width:110px;min-height:40px;background:var(--panel2);border:2px solid var(--line2);color:var(--text);font-size:15px"></div>`;
+  if(!(h>=18||h<6))return '';
+  return `<button class="btn" id="sleepBtn" style="margin-top:12px">🌙 我要睡了（記錄 ${hm(now)}）</button>`;
+}
+function saveSleep(ts){
+  const md0=sleepDay(ts);let r=getDay(md0);if(!r)r=Object.assign(newDay(md0),{date:md0});
+  r.sleepAt=ts;putDay(md0,r);
 }
 function daysBetween(a,b){return Math.round((parseYmd(b)-parseYmd(a))/864e5)}
 function backupBlock(d){
@@ -657,9 +672,13 @@ function trendBlock(d){
   const path=pts.map((p,k)=>`${k?'L':'M'}${X(p.i).toFixed(1)} ${Y(p.m).toFixed(1)}`).join(' ');
   const dots=pts.map(p=>`<rect x="${X(p.i)-4}" y="${Y(p.m)-4}" width="8" height="8" fill="${p.hit?'#F2A65A':'#E5533D'}"/>`).join('');
   const hits=pts.filter(p=>p.hit).length;
+  const sl=days.map(day=>{const r=getDay(day),w=r?.hookAt||r?.wakeAt;return r?.sleepAt?{s:r.sleepAt,w}:null}).filter(Boolean);
+  const sm=sl.map(x=>{const t=new Date(x.s);let m=t.getHours()*60+t.getMinutes();if(m<12*60)m+=1440;return m});
+  const sAvg=sm.length?sm.reduce((a,b)=>a+b,0)/sm.length:null, durs=sl.filter(x=>x.w&&x.w>x.s).map(x=>(x.w-x.s)/MIN), dAvg=durs.length?durs.reduce((a,b)=>a+b,0)/durs.length:null;
+  const sleepRow=sm.length?`<div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px"><div class="card"><div class="dim">平均入睡（${sm.length} 天）</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(sAvg%1440)}</div></div><div class="card"><div class="dim">平均睡多久</div><div class="px" style="font-size:15px;margin-top:6px">${dAvg?Math.floor(dAvg/60)+'h'+pad(Math.round(dAvg%60))+'m':'--'}</div></div></div>`:'';
   const word=sd<=15?'很穩 ✓':sd<=30?'還算穩':'起伏有點大';
   return `<h2>起床時間趨勢 <span class="dim">最近 28 天</span></h2>
-  <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card"><div class="dim">平均起床</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(avg)}</div></div><div class="card"><div class="dim">每天差多少</div><div class="px" style="font-size:15px;margin-top:6px">±${Math.round(sd)}分</div></div><div class="card"><div class="dim">準時</div><div class="px" style="font-size:15px;margin-top:6px">${hits}/${pts.length}</div></div></div>
+  <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card"><div class="dim">平均起床</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(avg)}</div></div><div class="card"><div class="dim">每天差多少</div><div class="px" style="font-size:15px;margin-top:6px">±${Math.round(sd)}分</div></div><div class="card"><div class="dim">準時</div><div class="px" style="font-size:15px;margin-top:6px">${hits}/${pts.length}</div></div></div>${sleepRow}
   <div class="card" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="最近 28 天起床時間" shape-rendering="crispEdges"><text x="8" y="12" fill="#8E9BB0" font-size="9">${fmt(lo+20)}</text><text x="8" y="${H-4}" fill="#8E9BB0" font-size="9">${fmt(hi-20)}</text>${tgLine}<path d="${path}" fill="none" stroke="#4A6690" stroke-width="2" shape-rendering="auto"/>${dots}</svg>
   <div class="dim">越往上越早起・橘點＝準時上鉤、紅點＝晚了・灰線＝當天目標。穩定度：<b style="color:var(--text)">${word}</b>（研究上「每天一樣」比「多早」重要）</div></div>`;
 }
