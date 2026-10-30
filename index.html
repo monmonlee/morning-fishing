@@ -305,7 +305,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0218';
+const APP_VERSION='2026.10.31-0220';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -947,7 +947,7 @@ function renderSet(){
   <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
   <h2>「${esc(sp0.name)}」的範本</h2>`+
   TPL_GROUPS.map(([g,gn,list])=>`<div class="sub" style="margin:12px 0 6px">${g}<span class="dim">　${gn}</span></div><div style="display:flex;flex-direction:column;gap:8px">`+
-  list.map(([k,l,hint])=>{const t=sp0.tpl?.[k];return `<div class="tplrow">${t?`<img src="${t.thumb}" style="width:44px;height:44px;image-rendering:pixelated" alt="">`:'<div class="ph"></div>'}<div class="t">${l}<div class="dim">${hint}</div></div>${t&&g!=='洗澡'?`<button data-untpl="${k}">刪除</button>`:''}<button data-tpl="${k}">${t?'重拍':'登記'}</button></div>`}).join('')+`</div>`).join('')+`
+  list.map(([k,l,hint])=>{const t=sp0.tpl?.[k];return `<div class="tplrow">${t?`<img src="${t.thumb}" style="width:44px;height:44px;image-rendering:pixelated" alt="">`:'<div class="ph"></div>'}<div class="t">${l}<div class="dim">${hint}</div></div>${t?`<button data-trytpl="${k}">試拍</button>`:''}${t&&g!=='洗澡'?`<button data-untpl="${k}">刪除</button>`:''}<button data-tpl="${k}">${t?'重拍':'登記'}</button></div>`}).join('')+`</div>`).join('')+`
   <p class="dim">範本只存成一組顏色數字和一張 16×16 的小縮圖，看不出照片內容。</p>
   <h2>其他</h2><div style="display:flex;flex-direction:column;gap:8px">
   <div class="card sub">壞夜卡：本月剩 ${Math.max(0,BAD_PER_MONTH-monthBadCount(d))} 張・手動算過：本週剩 ${Math.max(0,MANUAL_PER_WEEK-weekManualCount(d))} 次</div>
@@ -964,6 +964,7 @@ function renderSet(){
   v.querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{S.spot=b.dataset.spot;save();renderSet();toast('釣點換成：'+spotObj().name)});
   $('#addSpot').onclick=addSpot;
   v.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.tpl));
+  v.querySelectorAll('[data-trytpl]').forEach(b=>b.onclick=()=>tryTpl(b.dataset.trytpl));
   v.querySelectorAll('[data-untpl]').forEach(b=>b.onclick=()=>{delete spotObj().tpl[b.dataset.untpl];save();renderSet();toast('刪掉了，之後就不比對杯子')});
   $('#soundBtn').onclick=()=>{S.sound=S.sound===false;save();renderSet()};
   $('#musicBtn2').onclick=()=>{$('#musBtn').click();renderSet()};
@@ -971,6 +972,16 @@ function renderSet(){
 }
 // 今天還沒開始的話，跟著新的目標時間走
 function syncTodayTarget(){const d=ymd(new Date()),r=getDay(d);if(r&&!r.hookAt&&!r.final&&Date.now()<atTime(d,r.target)-HOOK_EARLY*MIN){r.target=targetFor(d);putDay(d,r)}}
+// 試拍：隨時測比對，不影響遊戲
+function tryTpl(k){
+  const [_,l,hint]=TPL_STEPS.find(t=>t[0]===k), tpl=spotObj().tpl[k];
+  cameraFlow({title:'試拍：'+l,hint:'拍拍看，這裡不算分',tpl,register:sig=>{
+    const sim=similarity(sig,tpl), need=k==='mirror'?.45:OPT_TPL.some(o=>o[0]===k)?.5:.55;
+    let msg=sig.lum<18?'太暗了，開燈再拍':sim>=need?`✓ 會過（相似度 ${Math.round(sim*100)}，要 ${Math.round(need*100)} 以上）`:`✗ 不會過（相似度 ${Math.round(sim*100)}，要 ${Math.round(need*100)} 以上）`;
+    if(k==='mirror'&&sim>=need)msg+=sig.sharp<=tpl.sharp*.8?'・鏡子有起霧 ✓':'・鏡子沒起霧，早上洗完澡才會過';
+    $('#camMsg').textContent=msg;sfx(sim>=need?'hook':'click');
+  }});
+}
 function registerTpl(k,after){
   const [_,l,hint]=TPL_STEPS.find(t=>t[0]===k);
   cameraFlow({title:'登記範本：'+l,hint,register:sig=>{const sp=spotObj();sp.tpl=sp.tpl||{};sp.tpl[k]=sig;save();closeCamera();$('#ov').hidden=true;toast('範本存好了：'+l);if(after)after();else{renderSet()}}});
