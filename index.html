@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0252';
+const APP_VERSION='2026.10.31-0257';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -966,6 +966,8 @@ Object.values(BGM).forEach(a=>{a.loop=true;a.volume=.35;a.preload='none'});
 const JINGLE=new Audio('audio/jingle-catch.m4a');JINGLE.volume=.6;JINGLE.preload='none';
 let unlocked=false,curBgm=null,wantBgm='menu';
 function musicOn(){return S?.music!==false}
+// 配樂關著時改成「環境音」：音效跟 Spotify 一起出聲，不會把它停掉
+function setSession(){try{if(navigator.audioSession)navigator.audioSession.type=musicOn()?'playback':'ambient'}catch(e){}}
 function playBgm(kind){
   wantBgm=kind;if(!unlocked||!musicOn()||document.hidden)return;
   if(curBgm===kind&&!BGM[kind].paused)return;
@@ -976,7 +978,7 @@ function stopBgm(){Object.values(BGM).forEach(a=>a.pause());curBgm=null}
 function playJingle(){if(!musicOn())return sfx('catch');if(!unlocked)return;const k=curBgm;stopBgm();JINGLE.currentTime=0;JINGLE.play().catch(()=>{});setTimeout(()=>playBgm(k||wantBgm),5600)}
 function syncMusBtn(){$('#musBtn').classList.toggle('off',!musicOn());$('#musBtn').setAttribute('aria-label',musicOn()?'背景音樂：開':'背景音樂：關')}
 document.addEventListener('pointerdown',()=>{if(unlocked)return;unlocked=true;playBgm(wantBgm)},{once:false,capture:true});
-$('#musBtn').onclick=e=>{S.music=!musicOn();save();syncMusBtn();if(musicOn()){unlocked=true;curBgm=null;playBgm(wantBgm)}else stopBgm()};
+$('#musBtn').onclick=e=>{S.music=!musicOn();save();setSession();syncMusBtn();if(musicOn()){unlocked=true;curBgm=null;playBgm(wantBgm)}else stopBgm()};
 
 // ───────── 音效 ─────────
 // 音效：先合成成 WAV，用 <audio> 播（跟配樂同一個聲道；iPhone 靜音模式下 Web Audio 會被消音）
@@ -1151,7 +1153,7 @@ document.addEventListener('visibilitychange',()=>{document.body.classList.toggle
 
 if(!S){S={mode:'daily',targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'stream',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
 else showTab('Today');
-syncMusBtn();
+syncMusBtn();setSession();
 checkUpdate();
 try{navigator.storage?.persist?.()}catch(e){}
 </script>
