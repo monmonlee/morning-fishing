@@ -149,6 +149,10 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:22px 0 10px}
 .dexgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .dexgrid .v{background:var(--water);padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;text-align:center;border:none;color:var(--text)}
 .dexgrid .v canvas{image-rendering:pixelated}
+.dexgrid .v{font:inherit;font-size:11px;cursor:pointer}
+.fdgrid{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;text-align:left}
+.fdgrid div{display:flex;flex-direction:column;gap:2px;background:var(--water);padding:8px 10px}
+.fdgrid b{font-size:15px}
 
 /* 底部分頁 */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-top:2px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
@@ -312,7 +316,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0922';
+const APP_VERSION='2026.10.31-1047';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -1023,8 +1027,8 @@ function renderDex(open){
   <div class="sub">一共釣起 ${caught} 條 · 釣竿：${rod.name}（Lv.${rod.lv+1}）${rod.next?` · 再 ${rod.next-caught} 條升級`:''}</div><div class="dim" style="margin-top:4px">釣竿越好稀有魚越多，但時限永遠不會放寬</div></section>`;
   if(open){
     const s=sp(open), mine=keys.filter(k=>k.startsWith(open+'|'));
-    h+=`<button class="btn ghost" id="dexBack" style="margin-top:14px">‹ 回到全部魚種</button><h2>${s.name}　${mine.length} / ${TOTAL_COMBOS/SPECIES.length}</h2><p class="sub">${s.desc}</p><div class="dexgrid">`+
-      mine.map(k=>{const[a,b,c,d]=k.split('|'),f={sp:a,pat:b,pal:c,trait:d};return `<div class="v"><span data-fish='${JSON.stringify(f)}' data-cell="4"></span>${fishName(f)}<span class="dim">×${dex[k].n}</span></div>`}).join('')+`</div>`;
+    h+=`<button class="btn ghost" id="dexBack" style="margin-top:14px">‹ 回到全部魚種</button><h2>${s.name}　${mine.length} / ${TOTAL_COMBOS/SPECIES.length}</h2><p class="sub">${s.desc}</p><p class="dim">點一條魚看牠的介紹</p><div class="dexgrid">`+
+      mine.map(k=>{const[a,b,c,d]=k.split('|'),f={sp:a,pat:b,pal:c,trait:d};return `<button class="v" data-key="${k}"><span data-fish='${JSON.stringify(f)}' data-cell="4"></span>${fishName(f)}<span class="dim">×${dex[k].n}</span></button>`}).join('')+`</div>`;
   }else{
     h+=`<h2>魚種</h2><div style="display:flex;flex-direction:column;gap:8px">`+SPECIES.map(s=>{
       const mine=keys.filter(k=>k.startsWith(s.id+'|'));
@@ -1035,6 +1039,20 @@ function renderDex(open){
   v.querySelectorAll('[data-fish]').forEach(el=>el.appendChild(fishCanvas(JSON.parse(el.dataset.fish),+el.dataset.cell)));
   v.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{if(!keys.some(k=>k.startsWith(b.dataset.sp+'|')))return toast('還沒釣到過');renderDex(b.dataset.sp)});
   $('#dexBack')?.addEventListener('click',()=>renderDex());
+  v.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{sfx('tap');showFish(b.dataset.key,dex[b.dataset.key])});
+}
+// 圖鑑裡點一條魚：跟釣起時一樣的介紹＋紀錄
+function showFish(k,info){
+  const[a,b,c,d]=k.split('|'),f={sp:a,pat:b,pal:c,trait:d}, stars=fishStars(f);
+  const mine=allCaught().filter(x=>fishKey(x)===k), maxCm=mine.length?Math.max(...mine.map(x=>x.cm||0)):0;
+  const md=info.first?info.first.slice(5).replace('-','/'):'—';
+  const rows=[['魚種',sp(f.sp).name],['花紋',pat(f.pat).name],['特徵',tr(f.trait).name],['最大',maxCm?maxCm+' cm':'—'],['第一次',md],['釣到',info.n+' 次']];
+  showOv(`<div class="ovhead"><b>${fishName(f)}</b><button class="x" id="fdX" aria-label="關閉">×</button></div>
+  <div class="catch" style="flex:none;justify-content:flex-start;margin-top:8px"><div class="fishbox" id="fdBox"></div>
+  <div class="sub">${'★'.repeat(stars)} ${STAR_WORD[stars]}</div>
+  <p style="line-height:1.7;margin:10px 0 14px">${sp(f.sp).desc}${TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''}</p>
+  <div class="fdgrid">${rows.map(([k,v])=>`<div><span class="dim">${k}</span><b>${v}</b></div>`).join('')}</div></div>`);
+  $('#fdBox').appendChild(fishCanvas(f,9));$('#fdX').onclick=hideOv;
 }
 
 // ───────── 設定 ─────────
