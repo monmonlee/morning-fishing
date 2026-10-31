@@ -312,7 +312,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-0305';
+const APP_VERSION='2026.10.31-0922';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -342,10 +342,10 @@ const COMBO_GAP=10;    // 雙餌：收完一條後 10 分鐘內要開始下一�
 const BAD_PER_MONTH=2, MANUAL_PER_WEEK=2;
 // after:[最少, 最多] 分鐘（相對同一條線的上一張）
 const CHAINS={
-  shower:{name:'洗澡',short:'浴巾→藍色三角→濕地板',steps:[
+  shower:{name:'洗澡',short:'浴巾→藍色三角→地板',steps:[
     {k:'towel',label:'浴巾',tpl:true,hint:'對準你的浴巾'},
     {k:'tri',label:'門上的藍色三角形',tpl:true,after:[0,3],hint:'站進淋浴間，從裡面往外拍門上的藍色三角形'},
-    {k:'floor',label:'濕的淋浴間地板',tpl:true,wet:true,after:[10,30],hint:'洗完澡，拍跟範本同一塊地板'}]},
+    {k:'floor',label:'洗完澡的淋浴間地板',tpl:true,wet:true,after:[10,30],hint:'洗完澡，拍跟範本同一塊地板'}]},
   coffee:{name:'咖啡',short:'滿杯→空杯',steps:[
     {k:'full',label:'滿杯咖啡',cup:'full',opt:'cup',hint:'杯口放進圓框裡'},
     {k:'empty',label:'喝完的空杯',cup:'empty',opt:'cup',optLoose:true,after:[2,30],hint:'同一個杯子，喝完再拍'}]},
@@ -353,7 +353,7 @@ const CHAINS={
     {k:'cup',label:'一杯水或瓶裝水',opt:'bottle',hint:'拍你的水杯或水瓶'},
     {k:'wempty',label:'喝完的空杯／空瓶',after:[1,30],hint:'喝完再拍'}]}
 };
-const SHOWER_TPL=[['towel','浴巾','平常掛的地方'],['tri','門上的藍色三角形','站進淋浴間，從裡面往外拍，每次站差不多的位置'],['floor','淋浴間地板（乾的）','趁地板乾的時候拍，之後拿來比對有沒有濕']];
+const SHOWER_TPL=[['towel','浴巾','平常掛的地方'],['tri','門上的藍色三角形','站進淋浴間，從裡面往外拍，每次站差不多的位置'],['floor','淋浴間地板','站在固定位置往下拍，乾的濕的都可以']];
 const OPT_TPL=[['cup','咖啡杯（裝滿的）','拍你平常用的杯子；登記後換別的杯子就不算'],['bottle','水杯或水瓶','選填；沒登記就只看有沒有拍']];
 const TPL_STEPS=[...SHOWER_TPL,...OPT_TPL];
 const TPL_GROUPS=[['洗澡','必登記才能用洗澡路線',SHOWER_TPL],['咖啡','選填：登記了就會比對是不是你的杯子',[OPT_TPL[0]]],['水','選填',[OPT_TPL[1]]]];
@@ -568,9 +568,8 @@ function check(step,sig,rec,ch){
     if(!tpl)return {ok:false,why:'這個釣點還沒登記範本',noTpl:true};
     const sim=similarity(sig,tpl);
     if(step.wet){
-      if(sim<.45)return {ok:false,why:'看起來不像登記的那塊地板'};
-      if(!(sig.lum<=tpl.lum*.93||sig.sharp>=tpl.sharp*1.25))return {ok:false,why:'地板看起來還是乾的'};
-      return {ok:true};
+      // 相機會自動補光，乾濕分不出來；改成「同一塊地板＋時間到」就算
+      return sim>=.4?{ok:true}:{ok:false,why:`看起來不像登記的那塊地板（${Math.round(sim*100)} 分），換個角度再拍`};
     }
     if(step.fog){
       if(sim<.45)return {ok:false,why:'看起來不像登記的鏡子'};
@@ -842,7 +841,7 @@ async function shoot(ch){
   if(!rec.hookAt){rec.bait=S.bait.filter(c=>c!=='shower'||hasShowerTpl());if(!rec.bait.includes(ch))rec.bait=[ch]}
   const def=CHAINS[ch], n=chainShots(rec,ch).length, step=def.steps[n];
   if(!step)return;
-  if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的「'+step.label.replace('濕的','')+'」範本');
+  if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的「'+step.label.replace('洗完澡的','')+'」範本');
   const st=chainState(rec,ch,now);
   if(rec.hookAt&&st.earliest&&now<st.earliest)return toast(step.wet?`才剛開始洗，${Math.ceil((st.earliest-now)/MIN)} 分鐘後再拍地板`:`再等 ${Math.ceil((st.earliest-now)/MIN)} 分鐘`);
   await cameraFlow({title:(rec.hookAt?'收線：':'上鉤：')+step.label,hint:step.hint,round:!!step.cup,deadline:rec.hookAt?st.deadline:atTime(d,rec.target)+HOOK_LATE*MIN,tpl:step.tpl?spotObj().tpl[step.k]:step.opt?spotObj().tpl?.[step.opt]:null,
@@ -1085,9 +1084,8 @@ function syncTodayTarget(){const d=ymd(new Date()),r=getDay(d);if(r&&!r.hookAt&&
 function tryTpl(k){
   const [_,l,hint]=TPL_STEPS.find(t=>t[0]===k), tpl=spotObj().tpl[k];
   cameraFlow({title:'試拍：'+l,hint:'拍拍看，這裡不算分',tpl,register:sig=>{
-    const sim=similarity(sig,tpl), need=k==='floor'?.45:OPT_TPL.some(o=>o[0]===k)?.5:.55;
+    const sim=similarity(sig,tpl), need=k==='floor'?.4:OPT_TPL.some(o=>o[0]===k)?.5:.55;
     let msg=sig.lum<18?'太暗了，開燈再拍':sim>=need?`✓ 會過（相似度 ${Math.round(sim*100)}，要 ${Math.round(need*100)} 以上）`:`✗ 不會過（相似度 ${Math.round(sim*100)}，要 ${Math.round(need*100)} 以上）`;
-    if(k==='floor'&&sim>=need)msg+=(sig.lum<=tpl.lum*.93||sig.sharp>=tpl.sharp*1.25)?'・地板是濕的 ✓':`・地板是乾的，洗完澡才會過（亮度 ${Math.round(sig.lum/tpl.lum*100)}%，要 93% 以下）`;
     $('#camMsg').textContent=msg;sfx(sim>=need?'hook':'fail');
   }});
 }
@@ -1134,7 +1132,7 @@ function onboarding(step=0){
     <div class="card sub" style="line-height:1.7">iPhone 鬧鐘設這個時間、<b>只設一顆、關掉貪睡</b>，手機放在離床最遠的地方充電。</div>
     <button class="btn primary" id="obNext">下一步</button></div>`,
    ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">登記家裡的浴室範本</div>
-    <p class="sub">洗澡路線要拿這三張來比對。現在就可以拍（地板要乾的）；也可以之後再到設定登記。</p>
+    <p class="sub">洗澡路線要拿這三張來比對。現在就可以拍；也可以之後再到設定登記。</p>
     <div style="display:flex;flex-direction:column;gap:8px">${SHOWER_TPL.map(([k,l,hint])=>`<div class="tplrow"><div class="t">${l}<div class="dim">${hint}</div></div><button data-obtpl="${k}">${S.spots.home.tpl?.[k]?'已登記 ✓':'登記'}</button></div>`).join('')}</div>
     <button class="btn primary" id="obNext">完成</button></div>`
   ];
