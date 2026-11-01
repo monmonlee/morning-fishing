@@ -323,7 +323,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.11.02-0031';
+const APP_VERSION='2026.11.02-0040';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -783,6 +783,7 @@ const fishName=f=>commonName(sp(f.sp))+(f.form==='j'?'（幼魚）':f.form==='b'
 const fishKey=f=>`${f.sp}|${f.form||'a'}`;
 function fishStars(f){return Math.min(5,sp(f.sp).stars+(f.form==='b'?1:0)+(f.big?1:0))}
 const STAR_WORD=['','普通','普通','稀有','非常稀有','傳說'];
+const WATER_NAME={stream:'溪流',sea:'海邊',all:'溪流＋海邊'};
 const POOL_WORD=s=>s.pool.length>1?'河口':s.pool[0]==='stream'?'溪流':'海邊';
 function monthsText(m){const set=new Set(m),st=m.find(v=>!set.has((v+10)%12+1));if(st===undefined)return '整年';
   const seq=[st];while(set.has(seq[seq.length-1]%12+1)&&seq.length<m.length)seq.push(seq[seq.length-1]%12+1);
@@ -893,7 +894,7 @@ function catchFish(rec,ch){
   if(dow===0){let hits=0;for(let i=1;i<=6;i++){const r=getDay(ymd(addDays(parseYmd(rec.date),-i)));if(r?.hookAt)hits++}big=hits>=4}
   // 魚池：釣點的水域＋這個月有出現的魚（季節魚只在牠的月份出現，當季機率稍高）
   const spotDef=S.spots[rec.spot]||S.spots.home, water=spotDef.water||'stream';
-  const pool=SPECIES.filter(s=>s.pool.includes(water)&&(!s.months||s.months.includes(month)));
+  const pool=SPECIES.filter(s=>(water==='all'||s.pool.includes(water))&&(!s.months||s.months.includes(month)));
   const r=rng(rec.date+ch+rec.hookAt);
   const w=x=>(x.stars===1?10:x.stars===2?5*mul:x.stars===3?2*mul:x.stars===4?.6*mul:.25*mul)*(x.months?1.5:1);
   let s=pickW(pool,w,r);
@@ -1065,10 +1066,30 @@ function showHomeHelp(){
   $('#hhX').onclick=hideOv;
 }
 // 起床時間趨勢：最近 28 天
+// 睡眠時間軸：每天一條，從「我要睡了」畫到上鉤（起床）
+function sleepChartSVG(days){
+  let rows=days.map(day=>{const r=getDay(day),w=r?.hookAt||r?.wakeAt;return {day,s:r?.sleepAt,w}});
+  if(!rows.some(x=>x.s))return '';
+  rows=rows.slice(rows.findIndex(x=>x.s||x.w));
+  const mm=t=>{const x=new Date(t);let m=x.getHours()*60+x.getMinutes();if(m<18*60)m+=1440;return m};
+  const A=21*60,B=37*60,L=44,W=336,RH=16,H=rows.length*RH+22,X=m=>L+(Math.min(B,Math.max(A,m))-A)/(B-A)*(W-L-6);
+  const fmtH=m=>pad(Math.floor(m/60)%24);
+  let g='';
+  [21,24,27,30,33,36].forEach(h=>{const x=X(h*60);g+=`<rect x="${x}" y="0" width="1" height="${H-18}" fill="#2D4A73"/><text x="${x}" y="${H-6}" fill="#8E9BB0" font-size="9" text-anchor="middle">${fmtH(h*60)}</text>`});
+  rows.forEach((r,i)=>{const y=i*RH+2;
+    g+=`<text x="0" y="${y+11}" fill="#8E9BB0" font-size="9">${r.day.slice(5).replace('-','/')}</text>`;
+    if(r.s&&r.w&&r.w>r.s){const a=X(mm(r.s)),b=X(mm(r.w));const dur=(r.w-r.s)/MIN;
+      g+=`<rect x="${a}" y="${y+2}" width="${Math.max(2,b-a)}" height="${RH-5}" fill="#4B3F72"/><rect x="${b-3}" y="${y+2}" width="3" height="${RH-5}" fill="#F2A65A"/>`;
+      g+=`<text x="${Math.min(b+3,W-30)}" y="${y+11}" fill="#B9C4D6" font-size="9">${Math.floor(dur/60)}h${pad(Math.round(dur%60))}</text>`}
+    else if(r.s){const a=X(mm(r.s));g+=`<rect x="${a}" y="${y+2}" width="3" height="${RH-5}" fill="#9B7FD0"/>`}
+    else if(r.w){const b=X(mm(r.w));g+=`<rect x="${b-3}" y="${y+2}" width="3" height="${RH-5}" fill="#F2A65A"/>`}});
+  return `<div class="card" style="margin-top:10px"><div class="dim" style="margin-bottom:6px">睡覺 → 起床（最近 14 天）</div><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="最近 14 天睡覺到起床的時間" shape-rendering="crispEdges">${g}</svg>
+  <div class="dim">紫色＝睡著的時間、橘色＝起床（上鉤）。只有起床沒有入睡的日子，是那晚沒按「我要睡了」。</div></div>`;
+}
 function trendBlock(d){
   const days=[...Array(28)].map((_,i)=>ymd(addDays(parseYmd(d),i-27)));
   const pts=days.map((day,i)=>{const r=getDay(day),t=r?.hookAt||r?.wakeAt;if(!t)return null;const x=new Date(t);return {i,m:x.getHours()*60+x.getMinutes(),hit:!!r.hookAt,tg:(r.target||targetFor(day)).split(':').reduce((a,b)=>a*60+ +b)}}).filter(Boolean);
-  if(pts.length<2)return `<h2>起床時間趨勢</h2><div class="card dim">記錄兩天以上就會出現：平均幾點起床、每天差多少。</div>`;
+  if(pts.length<2)return `<h2>起床時間趨勢</h2><div class="card dim">記錄兩天以上就會出現：平均幾點起床、每天差多少。</div>`+sleepChartSVG(days.slice(-14));
   const ms=pts.map(p=>p.m), avg=ms.reduce((a,b)=>a+b,0)/ms.length, sd=Math.sqrt(ms.reduce((a,b)=>a+(b-avg)**2,0)/ms.length);
   const lo=Math.min(...ms,...pts.map(p=>p.tg))-20, hi=Math.max(...ms,...pts.map(p=>p.tg))+20;
   const W=336,H=140,X=i=>8+i*(W-16)/27,Y=m=>8+(m-lo)/(hi-lo)*(H-16);
@@ -1081,9 +1102,10 @@ function trendBlock(d){
   const sm=sl.map(x=>{const t=new Date(x.s);let m=t.getHours()*60+t.getMinutes();if(m<12*60)m+=1440;return m});
   const sAvg=sm.length?sm.reduce((a,b)=>a+b,0)/sm.length:null, durs=sl.filter(x=>x.w&&x.w>x.s).map(x=>(x.w-x.s)/MIN), dAvg=durs.length?durs.reduce((a,b)=>a+b,0)/durs.length:null;
   const sleepRow=sm.length?`<div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px"><div class="card"><div class="dim">平均入睡（${sm.length} 天）</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(sAvg%1440)}</div></div><div class="card"><div class="dim">平均睡多久</div><div class="px" style="font-size:15px;margin-top:6px">${dAvg?Math.floor(dAvg/60)+'h'+pad(Math.round(dAvg%60))+'m':'--'}</div></div></div>`:'';
+  const sleepChart=sleepChartSVG(days.slice(-14));
   const word=sd<=15?'很穩 ✓':sd<=30?'還算穩':'起伏有點大';
   return `<h2>起床時間趨勢 <span class="dim">最近 28 天</span></h2>
-  <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card"><div class="dim">平均起床</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(avg)}</div></div><div class="card"><div class="dim">每天差多少</div><div class="px" style="font-size:15px;margin-top:6px">±${Math.round(sd)}分</div></div><div class="card"><div class="dim">準時</div><div class="px" style="font-size:15px;margin-top:6px">${hits}/${pts.length}</div></div></div>${sleepRow}
+  <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card"><div class="dim">平均起床</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(avg)}</div></div><div class="card"><div class="dim">每天差多少</div><div class="px" style="font-size:15px;margin-top:6px">±${Math.round(sd)}分</div></div><div class="card"><div class="dim">準時</div><div class="px" style="font-size:15px;margin-top:6px">${hits}/${pts.length}</div></div></div>${sleepRow}${sleepChart}
   <div class="card" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="最近 28 天起床時間" shape-rendering="crispEdges"><text x="8" y="12" fill="#8E9BB0" font-size="9">${fmt(lo+20)}</text><text x="8" y="${H-4}" fill="#8E9BB0" font-size="9">${fmt(hi-20)}</text>${tgLine}<path d="${path}" fill="none" stroke="#4A6690" stroke-width="2" shape-rendering="auto"/>${dots}</svg>
   <div class="dim">越往上越早起・橘點＝準時上鉤、紅點＝晚了・灰線＝當天目標。穩定度：<b style="color:var(--text)">${word}</b>（研究上「每天一樣」比「多早」重要）</div></div>`;
 }
@@ -1481,7 +1503,8 @@ function renderSet(){
   `<div class="card" style="margin-top:12px"><div class="sub">本週（${md(thisWk)} 起）</div><div class="px" style="font-size:22px;margin:6px 0">${weeklyTarget(d)}</div><div class="lock">本週已鎖定，不能在心軟的晚上改</div></div>
   <label class="f" style="margin-top:10px">下週目標（${md(nextWk)} 起生效）<input type="time" id="nextT" value="${nextVal}" step="300"></label>`}
   <p class="dim">建議每天同一時間；想提早，一次往前 10–15 分鐘。</p>
-  <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${s.water==='sea'?'海邊':'溪流'}）${id===S.spot?' · 使用中':''}</button>`).join('')}
+  <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${WATER_NAME[s.water||'stream']}）${id===S.spot?' · 使用中':''}</button>`).join('')}
+  <div class="dim" style="margin-top:4px">「${esc(sp0.name)}」的水域：</div><div class="row">${['stream','sea','all'].map(w=>`<button class="btn ${(sp0.water||'stream')===w?'primary':''}" data-water="${w}">${WATER_NAME[w]}</button>`).join('')}</div>
   <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
   <h2>「${esc(sp0.name)}」的範本</h2>`+
   TPL_GROUPS.map(([g,gn,list])=>`<div class="sub" style="margin:12px 0 6px">${g}<span class="dim">　${gn}</span></div><div style="display:flex;flex-direction:column;gap:8px">`+
@@ -1499,6 +1522,7 @@ function renderSet(){
   $('#modeDaily').onclick=()=>{S.mode='daily';save();syncTodayTarget();renderSet()};
   $('#modeWeekly').onclick=()=>{S.mode='weekly';save();syncTodayTarget();renderSet()};
   v.querySelectorAll('[data-dow]').forEach(inp=>inp.onchange=()=>{if(!inp.value)return;S.days=S.days||{};S.days[inp.dataset.dow]=inp.value;save();syncTodayTarget();toast(`星期${WD[inp.dataset.dow]}改成 ${inp.value}`);renderSet()});
+  v.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>{spotObj().water=b.dataset.water;save();renderSet();toast('明天起釣：'+WATER_NAME[b.dataset.water]+'的魚')});
   v.querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{S.spot=b.dataset.spot;save();renderSet();toast('釣點換成：'+spotObj().name)});
   $('#addSpot').onclick=addSpot;
   v.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>registerTpl(b.dataset.tpl));
@@ -1526,7 +1550,7 @@ function registerTpl(k,after){
 function addSpot(){
   showOv(`<div class="ovhead"><b>新增釣點</b><button class="x" id="spX" aria-label="關閉">×</button></div>
   <label class="f">名字<input id="spName" placeholder="例如：台南飯店" maxlength="12"></label>
-  <label class="f" style="margin-top:12px">水域（決定釣得到哪些魚）<select id="spWater"><option value="sea">海邊／水庫</option><option value="stream">溪流</option></select></label>
+  <label class="f" style="margin-top:12px">水域（決定釣得到哪些魚）<select id="spWater"><option value="all">溪流＋海邊</option><option value="sea">海邊／水庫</option><option value="stream">溪流</option></select></label>
   <p class="dim">建好之後到「設定」登記這裡的浴室範本；沒有咖啡就用「水」路線。</p>
   <button class="btn primary" id="spOk" style="margin-top:12px">建立並切換過去</button>`);
   $('#spX').onclick=hideOv;
@@ -1600,7 +1624,9 @@ $('#updateBtn').onclick=()=>{location.href=location.pathname+'?v='+(latest||Date
 document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.visibilityState==='visible'){setPhase();checkUpdate();if(!$('#viewToday').hidden&&$('#ov').hidden)renderToday();else playBgm(wantBgm)}else{closeCamera();stopBgm()}});
 
 try{migrateFish()}catch(e){console.error(e)}
-if(!S){S={mode:'daily',targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'stream',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
+// 11/02：家裡的釣點改成溪流＋海邊都釣得到（真魚圖鑑上線時）
+try{if(S&&S.spots?.home&&!S.homeAllV){if((S.spots.home.water||'stream')==='stream')S.spots.home.water='all';S.homeAllV=1;save()}}catch(e){}
+if(!S){S={mode:'daily',targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'all',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
 else showTab('Today');
 syncMusBtn();setSession();
 checkUpdate();
