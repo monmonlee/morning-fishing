@@ -150,6 +150,8 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:22px 0 10px}
 .dexgrid .v{background:var(--water);padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;text-align:center;border:none;color:var(--text)}
 .dexgrid .v canvas{image-rendering:pixelated}
 .dexgrid .v{font:inherit;font-size:11px;cursor:pointer}
+.sci{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13px;color:#8E9BB0}
+.fcard .sci{color:#5A6A7E;margin-top:-4px}
 .fdgrid{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;text-align:left}
 .fdgrid div{display:flex;flex-direction:column;gap:2px;background:var(--water);padding:8px 10px}
 .fdgrid b{font-size:15px}
@@ -316,7 +318,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.10.31-1047';
+const APP_VERSION='2026.11.01-1225';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -365,16 +367,16 @@ const TPL_GROUPS=[['洗澡','必登記才能用洗澡路線',SHOWER_TPL],['咖�
 // ───────── 魚 ─────────
 // o 背／輪廓、b 身體（花紋畫在這）、w 肚子、f 鰭、e 眼睛、m 鬍鬚
 const SPECIES=[
- {id:'tilapia',name:'吳郭魚',stars:1,pool:['stream','sea'],len:[15,35],desc:'原產非洲的強韌魚種，幾乎哪裡的水都活得下去。',art:['....fffffff.......','...fobbbbbbof.....','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwbbbbbbbbbbbofff','..wwwwbbbbbbbo..f.','...owwwwwwwwo.....','....ff....ff......']},
- {id:'mosquito',name:'大肚魚',stars:1,pool:['stream'],len:[2,5],desc:'直接生下小魚的卵胎生小魚，常在水溝邊游來游去。',art:['......ooo.........','....oobbbboo......','..oebbbbbbbbbo.ff.','.obbbbbbbbbbbbfff.','..wwwwwwwbbbbo.ff.','....wwwwwwoo......','......f...........']},
- {id:'carp',name:'鯉魚',stars:1,pool:['stream','sea'],len:[30,70],desc:'嘴邊有兩對鬚，可以活好幾十年。',art:['.....ooooooo......','...oobbbbbbbboo..f','..obbbbbbbbbbbbbff','.obebbbbbbbbbbbbff','mobbbbbbbbbbbbbbff','m.wwwbbbbbbbbbboff','...wwwwwwwwwwoo..f','.....ff....ff.....']},
- {id:'ayu',name:'香魚',stars:2,pool:['stream'],len:[12,25],desc:'只在乾淨的溪流生活，大多一年就走完一生。',art:['......ooooo.......','...ooobbbbbooo..f.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','.wwwwwwbbbbbbbboff','...wwwwwwwwwooo.f.','......ff..ff......']},
- {id:'zacco',name:'溪哥',stars:2,pool:['stream'],len:[10,18],desc:'台灣溪流常見的小魚，繁殖期雄魚會換上鮮豔的婚姻色。',art:['.....oooooo.......','...oobbbbbbboo..f.','.obebbbbbbbbbbbbff','obbbbbbbbbbbbbboff','.wwwwwbbbbbbbboo.f','...wwwwwwwwwoo....','.....ffffff.......']},
- {id:'formosana',name:'櫻花鉤吻鮭',stars:4,pool:['stream'],len:[20,40],desc:'冰河時期留下來的陸封型鮭魚，只住在大甲溪上游，是台灣的國寶魚。',art:['......ooooo.......','...ooobbbbbboo.ff.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','.wwwwwbbbbbbbbbo.f','...wwwwwwwwwwoo...','.....ff...ff......']},
- {id:'milkfish',name:'虱目魚',stars:1,pool:['sea'],len:[30,60],desc:'台南早餐的主角，鱗片銀亮、游得很快。',art:['.......ooo......f.','....ooobbbooo..ff.','..oobbbbbbbbbbofff','.oebbbbbbbbbbbbbf.','obbbbbbbbbbbbbbbf.','.wwwwwwbbbbbbbboff','...wwwwwwwwwwoo.ff','................f.']},
- {id:'seabream',name:'黑鯛',stars:2,pool:['sea'],len:[20,45],desc:'常在防波堤被釣起，聰明又謹慎，釣客很愛牠。',art:['.....fffff........','...oobbbbbbo......','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwwbbbbbbbbbbofff','..wwwwwwbbbbbo..f.','....wwwwwwwoo.....','......ff..ff......']},
- {id:'puffer',name:'河豚',stars:2,pool:['sea'],len:[10,30],desc:'受到威脅會把身體鼓成一顆球。',art:['.....ooooooo......','...oobbbbbbbboo...','..obbbbbbbbbbbbof.','.obebbbbbbbbbbbbff','.obbbbbbbbbbbbbbff','.owwwwwwwwwwwwwof.','..owwwwwwwwwwwwo..','...oowwwwwwwwoo...','.....ooooooo......']},
- {id:'mahi',name:'鬼頭刀',stars:3,pool:['sea'],len:[60,140],desc:'額頭高高隆起，剛出水時身上是亮綠和金黃色。',art:['oooffffffffff.....','obbbbbbbbbbbbbo..f','obebbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','owwwbbbbbbbbbbboff','.owwwwwwwwwwwoo..f','....ffffff........']}
+ {id:'tilapia',name:'吳郭魚',stars:1,pool:['stream','sea'],len:[15,35],sci:'Oreochromis mossambicus',desc:'原產非洲的強韌魚種，幾乎哪裡的水都活得下去。',art:['....fffffff.......','...fobbbbbbof.....','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwbbbbbbbbbbbofff','..wwwwbbbbbbbo..f.','...owwwwwwwwo.....','....ff....ff......']},
+ {id:'mosquito',name:'大肚魚',stars:1,pool:['stream'],len:[2,5],sci:'Gambusia affinis',desc:'直接生下小魚的卵胎生小魚，常在水溝邊游來游去。',art:['......ooo.........','....oobbbboo......','..oebbbbbbbbbo.ff.','.obbbbbbbbbbbbfff.','..wwwwwwwbbbbo.ff.','....wwwwwwoo......','......f...........']},
+ {id:'carp',name:'鯉魚',stars:1,pool:['stream','sea'],len:[30,70],sci:'Cyprinus carpio',desc:'嘴邊有兩對鬚，可以活好幾十年。',art:['.....ooooooo......','...oobbbbbbbboo..f','..obbbbbbbbbbbbbff','.obebbbbbbbbbbbbff','mobbbbbbbbbbbbbbff','m.wwwbbbbbbbbbboff','...wwwwwwwwwwoo..f','.....ff....ff.....']},
+ {id:'ayu',name:'香魚',stars:2,pool:['stream'],len:[12,25],sci:'Plecoglossus altivelis',desc:'只在乾淨的溪流生活，大多一年就走完一生。',art:['......ooooo.......','...ooobbbbbooo..f.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','.wwwwwwbbbbbbbboff','...wwwwwwwwwooo.f.','......ff..ff......']},
+ {id:'zacco',name:'溪哥',stars:2,pool:['stream'],len:[10,18],sci:'Opsariichthys pachycephalus',desc:'台灣溪流常見的小魚，繁殖期雄魚會換上鮮豔的婚姻色。',art:['.....oooooo.......','...oobbbbbbboo..f.','.obebbbbbbbbbbbbff','obbbbbbbbbbbbbboff','.wwwwwbbbbbbbboo.f','...wwwwwwwwwoo....','.....ffffff.......']},
+ {id:'formosana',name:'櫻花鉤吻鮭',stars:4,pool:['stream'],len:[20,40],sci:'Oncorhynchus formosanus',desc:'冰河時期留下來的陸封型鮭魚，只住在大甲溪上游，是台灣的國寶魚。',art:['......ooooo.......','...ooobbbbbboo.ff.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','.wwwwwbbbbbbbbbo.f','...wwwwwwwwwwoo...','.....ff...ff......']},
+ {id:'milkfish',name:'虱目魚',stars:1,pool:['sea'],len:[30,60],sci:'Chanos chanos',desc:'台南早餐的主角，鱗片銀亮、游得很快。',art:['.......ooo......f.','....ooobbbooo..ff.','..oobbbbbbbbbbofff','.oebbbbbbbbbbbbbf.','obbbbbbbbbbbbbbbf.','.wwwwwwbbbbbbbboff','...wwwwwwwwwwoo.ff','................f.']},
+ {id:'seabream',name:'黑鯛',stars:2,pool:['sea'],len:[20,45],sci:'Acanthopagrus schlegelii',desc:'常在防波堤被釣起，聰明又謹慎，釣客很愛牠。',art:['.....fffff........','...oobbbbbbo......','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwwbbbbbbbbbbofff','..wwwwwwbbbbbo..f.','....wwwwwwwoo.....','......ff..ff......']},
+ {id:'puffer',name:'河豚',stars:2,pool:['sea'],len:[10,30],sci:'Takifugu niphobles',desc:'受到威脅會把身體鼓成一顆球。',art:['.....ooooooo......','...oobbbbbbbboo...','..obbbbbbbbbbbbof.','.obebbbbbbbbbbbbff','.obbbbbbbbbbbbbbff','.owwwwwwwwwwwwwof.','..owwwwwwwwwwwwo..','...oowwwwwwwwoo...','.....ooooooo......']},
+ {id:'mahi',name:'鬼頭刀',stars:3,pool:['sea'],len:[60,140],sci:'Coryphaena hippurus',desc:'額頭高高隆起，剛出水時身上是亮綠和金黃色。',art:['oooffffffffff.....','obbbbbbbbbbbbbo..f','obebbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','owwwbbbbbbbbbbboff','.owwwwwwwwwwwoo..f','....ffffff........']}
 ];
 const PATTERNS=[{id:'plain',w:'',name:'素色'},{id:'spot',w:'斑',name:'斑點'},{id:'bar',w:'紋',name:'條紋'},{id:'line',w:'線',name:'線紋'},{id:'cloud',w:'雲',name:'雲紋'},{id:'star',w:'星',name:'星點'}];
 const PALETTES=[
@@ -775,6 +777,7 @@ function fishCardHTML(f,rec){
   return `<div class="fcard" style="--gem:${GEM[stars]}"><div class="top"><div class="no">No.${String(no||0).padStart(3,'0')}</div><div class="stars">${'★'.repeat(stars)} ${STAR_WORD[stars]}${f.big?' · 週日大魚':''}</div></div>
   <div class="tank" data-fish='${JSON.stringify(f)}' data-cell="9">${deco}</div>
   <div class="name">${fishName(f)}</div>
+  <div class="sci">${s.sci}</div>
   <div class="desc">${s.desc}${TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''}</div>
   <div class="attrs"><div>魚種<b>${s.name}</b></div><div>花紋<b>${pat(f.pat).name}</b></div><div>特徵<b>${tr(f.trait).name}</b></div><div>體長<b>${f.cm} cm</b></div></div>
   <div class="foot"><div style="font-size:12px;color:#3A4A5E">${md(rec.date)}起床</div><div class="px">${hm(rec.hookAt)}</div></div></div>`;
@@ -898,7 +901,7 @@ function showCatch({f,isNew},rec){
   closeCamera();playJingle();
   const all=rec.final;
   showOv(`<div class="catch"><div class="big">釣起來了！</div><div class="fishbox" id="fishbox"></div>
-  <div style="font-size:22px;font-weight:700">${fishName(f)}</div><div class="sub">${'★'.repeat(fishStars(f))} ${STAR_WORD[fishStars(f)]} · ${f.cm} cm${isNew?' · 圖鑑新登錄！':''}</div>
+  <div style="font-size:22px;font-weight:700">${fishName(f)}</div><div class="sci">${sp(f.sp).sci}</div><div class="sub">${'★'.repeat(fishStars(f))} ${STAR_WORD[fishStars(f)]} · ${f.cm} cm${isNew?' · 圖鑑新登錄！':''}</div>
   ${!all?'<p class="sub">另一條線還在等你，別回床上喔</p>':''}
   <button class="btn primary" id="catchOk" style="margin-top:10px">${all?'看今天的魚卡':'繼續收線'}</button></div>`);
   const box=$('#fishbox');box.appendChild(fishCanvas(f,9));if(isNew){const st=document.createElement('div');st.className='stamp';st.textContent='NEW';box.appendChild(st)}
@@ -911,7 +914,7 @@ function wrapText(ctx,text,x,y,maxW,lh){let line='';for(const ch of text){if(ctx
 async function fontsReady(){try{await document.fonts.load('40px "Press Start 2P"');await document.fonts.load('700 40px "Noto Sans TC"')}catch(e){}}
 // 分享圖的共用小零件
 function skyBands(x){[['#1A2340',0,150],['#4B3F72',150,200],['#C9707A',200,228],['#F2A65A',228,244]].forEach(([c,a,b])=>{x.fillStyle=c;x.fillRect(0,a,1080,b-a)})}
-function pxWave(x,x0,y,w,c){x.fillStyle=c;for(let i=0;i<w;i+=32){x.fillRect(x0+i,y+4,8,4);x.fillRect(x0+i+8,y,8,4);x.fillRect(x0+i+16,y+4,8,4);x.fillRect(x0+i+24,y+8,8,4)}}
+function pxWave(x,x0,y,w,c){x.fillStyle=c;for(let i=0;i+32<=w;i+=32){x.fillRect(x0+i,y+4,8,4);x.fillRect(x0+i+8,y,8,4);x.fillRect(x0+i+16,y+4,8,4);x.fillRect(x0+i+24,y+8,8,4)}}
 function rivets(x,x0,y0,w,h){x.fillStyle='#8E9BB0';[[x0+10,y0+10],[x0+w-18,y0+10],[x0+10,y0+h-18],[x0+w-18,y0+h-18]].forEach(([a,b])=>x.fillRect(a,b,8,8))}
 function sparkle(x,cx,cy){x.fillStyle='#FFD58A';x.fillRect(cx-12,cy-4,24,8);x.fillRect(cx-4,cy-12,8,24);x.fillStyle='#FFF6D5';x.fillRect(cx-4,cy-4,8,8)}
 // 一張魚卡（一條、兩條用同一套欄位）
@@ -928,6 +931,7 @@ function drawFishCard(x,f,y0,H,tankH){
     if(stars>=3)[[tx+80,ty+tankH*.35],[tx+tw-80,ty+tankH*.4],[tx+140,ty+tankH*.82],[tx+tw-150,ty+tankH*.78]].forEach(([a,b])=>sparkle(x,a,b));
     x.fillStyle='#14223A';x.font='700 58px "Noto Sans TC"';x.fillText(fishName(f),tx,by);
     x.fillStyle='#7A3A8C';x.font='700 34px "Noto Sans TC"';x.fillText('★'.repeat(stars)+' '+STAR_WORD[stars]+(f.big?' · 週日大魚':''),tx,by+52);
+    x.fillStyle='#5A6A7E';x.font='italic 30px Georgia,"Times New Roman",serif';x.textAlign='right';x.fillText(sp(f.sp).sci,tx+tw,by+50);x.textAlign='left';
     x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';const yEnd=wrapText(x,sp(f.sp).desc+(TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''),tx,by+104,tw,46);
     const ay=yEnd+64;[['魚種',sp(f.sp).name],['花紋',pat(f.pat).name],['特徵',tr(f.trait).name],['體長',f.cm+' cm']].forEach(([k,v],i)=>{const ax=tx+i*210;x.fillStyle='#5A6A7E';x.font='26px "Noto Sans TC"';x.fillText(k,ax,ay);x.fillStyle='#14223A';x.font='700 32px "Noto Sans TC"';x.fillText(v,ax,ay+40)});
   }else{
@@ -1049,7 +1053,7 @@ function showFish(k,info){
   const rows=[['魚種',sp(f.sp).name],['花紋',pat(f.pat).name],['特徵',tr(f.trait).name],['最大',maxCm?maxCm+' cm':'—'],['第一次',md],['釣到',info.n+' 次']];
   showOv(`<div class="ovhead"><b>${fishName(f)}</b><button class="x" id="fdX" aria-label="關閉">×</button></div>
   <div class="catch" style="flex:none;justify-content:flex-start;margin-top:8px"><div class="fishbox" id="fdBox"></div>
-  <div class="sub">${'★'.repeat(stars)} ${STAR_WORD[stars]}</div>
+  <div class="sub">${'★'.repeat(stars)} ${STAR_WORD[stars]}</div><div class="sci">${sp(f.sp).sci}</div>
   <p style="line-height:1.7;margin:10px 0 14px">${sp(f.sp).desc}${TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''}</p>
   <div class="fdgrid">${rows.map(([k,v])=>`<div><span class="dim">${k}</span><b>${v}</b></div>`).join('')}</div></div>`);
   $('#fdBox').appendChild(fishCanvas(f,9));$('#fdX').onclick=hideOv;
