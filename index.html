@@ -150,8 +150,13 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:22px 0 10px}
 .dexgrid .v{background:var(--water);padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;text-align:center;border:none;color:var(--text)}
 .dexgrid .v canvas{image-rendering:pixelated}
 .dexgrid .v{font:inherit;font-size:11px;cursor:pointer}
-.sci{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13px;color:#8E9BB0}
+.sci{font-size:12px;color:#8E9BB0}
+.sci i{font-family:Georgia,'Times New Roman',serif;font-size:13px}
 .fcard .sci{color:#5A6A7E;margin-top:-4px}
+.sci i{font-style:italic}
+.legacy{display:inline-block;margin-left:8px;padding:1px 6px;font-size:11px;font-weight:700;vertical-align:3px;background:#7A3A8C;color:#fff;font-family:'Noto Sans TC',sans-serif;font-style:normal}
+.dexgrid .v.unknown canvas{filter:brightness(0);opacity:.45}
+.dexgrid .v.unknown{opacity:.8}
 .fdgrid{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;text-align:left}
 .fdgrid div{display:flex;flex-direction:column;gap:2px;background:var(--water);padding:8px 10px}
 .fdgrid b{font-size:15px}
@@ -365,81 +370,456 @@ const TPL_STEPS=[...SHOWER_TPL,...OPT_TPL];
 const TPL_GROUPS=[['洗澡','必登記才能用洗澡路線',SHOWER_TPL],['咖啡','選填：登記了就會比對是不是你的杯子',[OPT_TPL[0]]],['水','選填',[OPT_TPL[1]]]];
 
 // ───────── 魚 ─────────
-// o 背／輪廓、b 身體（花紋畫在這）、w 肚子、f 鰭、e 眼睛、m 鬍鬚
+// 全部是真實的台灣魚，資料來自臺灣魚類資料庫（fishdb 欄位＝該站 species id）。
+// 像素圖＝體型範本（SHAPES）＋每種魚自己的顏色與花紋。
+// 範本字元：o 外框、b 身體（花紋畫在這）、w 腹、f 鰭、e 眼睛、m 鬚／嘴、p 固定深色（鯊魚鰓裂）
+const SHAPES={
+fusi:[ // 紡錘：虱目魚、鯖、鰺、鰹
+'........ff..........',
+'......ooffoo......f.',
+'....oobbbbbboo...ff.',
+'..oobbbbbbbbbboo.ff.',
+'.obebbbbbbbbbbbbofff',
+'obbbbbbbbbbbbbbbbff.',
+'.owwwwwwbbbbbbbboff.',
+'..oowwwwwwwwwoo..ff.',
+'....oowwwwwoo.....f.',
+'......f...f.........'],
+bream:[ // 側扁：鯛、雀鯛、石狗公
+'.....fffff..........',
+'....fobbbbbo........',
+'...obbbbbbbbbo...f..',
+'..obbbbbbbbbbbo.ff..',
+'.obebbbbbbbbbbboff..',
+'obbbbbbbbbbbbbbbfff.',
+'.owwwbbbbbbbbbbofff.',
+'..owwwwwwwwbbbo.ff..',
+'...oowwwwwwwoo...f..',
+'.....ff..ff.........'],
+disc:[ // 圓盤：蝴蝶魚、金錢魚、雞籠鯧
+'......fffff.......',
+'....ffobbbbof.....',
+'...obbbbbbbbbo....',
+'..obbbbbbbbbbbo.f.',
+'.obebbbbbbbbbbboff',
+'obbbbbbbbbbbbbbfff',
+'.owbbbbbbbbbbbboff',
+'..owwwwbbbbbbbo.f.',
+'...owwwwwwwwwo....',
+'....ffowwwwof.....',
+'......fffff.......'],
+carp:[ // 鯉型（有鬚）：鯉、鯽、草魚、鰱
+'.......fffff........',
+'.....oobbbbboo......',
+'...oobbbbbbbbbboo.f.',
+'..obbbbbbbbbbbbbboff',
+'.obebbbbbbbbbbbbbbff',
+'mobbbbbbbbbbbbbbbbff',
+'m.owwwwwbbbbbbbbboff',
+'...oowwwwwwwwwwoo.f.',
+'.....oowwwwwwoo.....',
+'.......f....f.......'],
+slim:[ // 細長：香魚、溪哥、馬口魚
+'.........ff.........',
+'......oooffooo...f..',
+'...oobbbbbbbbbbooff.',
+'.oobebbbbbbbbbbbbff.',
+'obbbbbbbbbbbbbbbbbf.',
+'.owwwwwwwbbbbbbbboff',
+'..oowwwwwwwwwwwoo.f.',
+'.....f......f.......'],
+salmon:[ // 鮭：有脂鰭
+'........ff..........',
+'......ooffoo...f....',
+'...oobbbbbbbbbboo.f.',
+'.oobebbbbbbbbbbbboff',
+'obbbbbbbbbbbbbbbbbff',
+'.owwwwwwbbbbbbbbboff',
+'..oowwwwwwwwwwwoo.f.',
+'.....f.....f........'],
+eel:[ // 鰻、鯙
+'........................',
+'..oooooooooooooooooo....',
+'.obebbbbbbbbbbbbbbbbooff',
+'obbbbbbbbbbbbbbbbbbbbbff',
+'.owwwwwwwwwwwwwwwwwwooff',
+'..oooooooooooooooooo....'],
+ribbon:[ // 白帶魚
+'..ffffffffffffffffff....',
+'.oooooooooooooooooooooo.',
+'obebbbbbbbbbbbbbbbbbbbbo',
+'mowwwwwwwwwwwwwwwwwwwoo.',
+'.oooooooooooooooooooo...'],
+flat:[ // 比目魚（側躺，兩眼在上）
+'....ffffffffffff.....',
+'..ffoooooooooooooff..',
+'.foebbbbbbbbbbbbbof..',
+'foebbbbbbbbbbbbbbofff',
+'.obbbbbbbbbbbbbbbofff',
+'..fooooooooooooooff..',
+'....ffffffffffff.....'],
+puffer:[ // 河豚
+'.....ooooooo......',
+'...oobbbbbbbboo...',
+'..obbbbbbbbbbbbof.',
+'.obebbbbbbbbbbbbff',
+'.obbbbbbbbbbbbbbff',
+'.owwwwwwwwwwwwwof.',
+'..owwwwwwwwwwwo...',
+'...oowwwwwwwoo....',
+'.....ooooooo......'],
+spiny:[ // 刺河豚（鼓起來）
+'..f...f...f...f...',
+'...ooooooooooo....',
+'f.obbbbbbbbbbbo.f.',
+'.obebbbbbbbbbbbof.',
+'fobbbbbbbbbbbbbbff',
+'.owwwwwwwwwwwwwoff',
+'f.owwwwwwwwwwwo.f.',
+'...ooooooooooo....',
+'..f...f...f...f...'],
+goby:[ // 鰕虎、彈塗魚（大頭、兩背鰭）
+'....ff....ff........',
+'..oobboooobboooo....',
+'.obebbbbbbbbbbbbooff',
+'obbbbbbbbbbbbbbbbbff',
+'owwwwwwwwwwwwwwwooff',
+'.oooooffooooofoo....'],
+cat:[ // 鯰、鮠（長鬚）
+'.........ff.........',
+'...ooooooffoooo.....',
+'.oobbbbbbbbbbbbboo..',
+'obebbbbbbbbbbbbbbbof',
+'obbbbbbbbbbbbbbbbbff',
+'mowwwwwwwwwwwwwwwoff',
+'m.ooooooooooooooo.f.',
+'mm..................'],
+loach:[ // 泥鰍
+'......................',
+'..ooooooooooooooooo...',
+'.obebbbbbbbbbbbbbbboof',
+'mbbbbbbbbbbbbbbbbbbbff',
+'mowwwwwwwwwwwwwwwwwoof',
+'..ooooooooooooooooo...'],
+snakehead:[ // 鱧（長背鰭）
+'....ffffffffffff......',
+'..ooooooooooooooooo...',
+'.obebbbbbbbbbbbbbbboof',
+'obbbbbbbbbbbbbbbbbbbff',
+'.owwwwwwwwwwwwwwwwwoof',
+'..oofffffffffffffoo...'],
+tuna:[ // 鮪、鰹
+'.........fff..........',
+'.......oofffoo......f.',
+'....oobbbbbbbbboo..ff.',
+'..oobbbbbbbbbbbbbboff.',
+'.obebbbbbbbbbbbbbbbbff',
+'obbbbbbbbbbbbbbbbbbbff',
+'.owwwwwwwwwbbbbbbbboff',
+'..oowwwwwwwwwwwwwoo.f.',
+'.....oowwfwwwwoo......'],
+mahi:[ // 鬼頭刀（額頭高、長背鰭）
+'ooofffffffffffff.....',
+'obbbbbbbbbbbbbbbo..f.',
+'obebbbbbbbbbbbbbbbff.',
+'obbbbbbbbbbbbbbbbbff.',
+'owwwbbbbbbbbbbbbboff.',
+'.owwwwwwwwwwwwwoo..f.',
+'..oofffffffffoo......'],
+grouper:[ // 石斑（大嘴、粗壯）
+'......ffffffff......',
+'....oobbbbbbbbbo....',
+'..oobbbbbbbbbbbbo.f.',
+'.obebbbbbbbbbbbbboff',
+'obbbbbbbbbbbbbbbbbff',
+'mobbbbbbbbbbbbbbbbff',
+'.owwwwwwwbbbbbbbboff',
+'..oowwwwwwwwwwwoo.f.',
+'....oof..f..foo.....'],
+shark:[ // 鯊（鰓裂 p）
+'..........f...........',
+'.........ff...........',
+'....ooooobbooooo....f.',
+'..oobbbbbbbbbbbbboo.ff',
+'.obebpbbbbbbbbbbbbbbff',
+'obbbpbbbbbbbbbbbbbbbf.',
+'.owwwwwwwwwwwwwwwooff.',
+'...oooffooooooooo..f..',
+'.....f................'],
+hammer:[ // 雙髻鯊
+'..........f...........',
+'.........ff...........',
+'oo..ooooobbooooo....f.',
+'eboobbbbbbbbbbbbboo.ff',
+'obbbbpbbbbbbbbbbbbbbff',
+'oo.owwwwwwwwwwwwwooff.',
+'....ooffooooooooo..f..',
+'.....f................'],
+whale:[ // 鯨鯊（嘴寬、白點靠 p）
+'...........ff...........',
+'..........fff...........',
+'...oooooooobbooooooo.f..',
+'.oobbbbbbbbbbbbbbbbbooff',
+'obebpbbbbbbbbbbbbbbbbbff',
+'mbbbpbbbbbbbbbbbbbbbbbf.',
+'owwwwwwwwwwwwwwwwwwwooff',
+'.ooooffoooooooooooo..f..'],
+ray:[ // 魟（俯視）
+'.......oo.......',
+'.....oobboo.....',
+'...oobbbbbboo...',
+'.oobbebbebbbboo.',
+'obbbbbbbbbbbbbbo',
+'.oobbbbbbbbbboo.',
+'...oobbbbbboo...',
+'.....oobboo.....',
+'.......oo.......',
+'.......ff.......',
+'.......ff.......',
+'........f.......'],
+box:[ // 箱魨
+'....oooooooo.....',
+'...obbbbbbbbo.f..',
+'..obebbbbbbbbof..',
+'..obbbbbbbbbbbff.',
+'..obbbbbbbbbbbff.',
+'..owwwwwwwwwwof..',
+'...oooooooooo.f..'],
+horse:[ // 海馬（直立）
+'..oooo....',
+'.obbbbo...',
+'oebbbbbooo',
+'.oobbbo...',
+'...obbo...',
+'..obbbfo..',
+'..obbbbf..',
+'..obbbbo..',
+'...obbo...',
+'....obo...',
+'....obo...',
+'...obbo...',
+'..obo.....',
+'..oo......'],
+needle:[ // 金梭魚（尖嘴長身）
+'..........f......f......',
+'........ooooooooooooo.f.',
+'.oooooobebbbbbbbbbbbboff',
+'obbbbbbbbbbbbbbbbbbbbbff',
+'.oowwwwwwwwwwwwwwwwwwoff',
+'.......ooooofooooooo..f.'],
+sail:[ // 旗魚（帆＋長嘴）
+'.......ffffffffff.........',
+'......ffffffffffff........',
+'.....ooooooooooooooooo..f.',
+'mmmmobebbbbbbbbbbbbbbbbbff',
+'....obbbbbbbbbbbbbbbbbbbff',
+'.....owwwwwwwwwwwwwwwwoff.',
+'......oooffoooooooooo..f..'],
+lion:[ // 簑鮋
+'.f.f.f.f.f.f......',
+'.fofofofofof......',
+'..oobbbbbbbbo...f.',
+'.obebbbbbbbbbo.ff.',
+'obbbbbbbbbbbbbofff',
+'.owwwwbbbbbbbbofff',
+'..oowwwwwwwwoo.ff.',
+'.f.f.f.f.f.f....f.',
+'f.f.f.f.f.f.f.....'],
+angler:[ // 鮟鱇（大頭寬嘴）
+'....f...............',
+'...f.ooooooo........',
+'..oobbbbbbbbboo.....',
+'.obebbbbbbbbbbbooo.f',
+'obbbbbbbbbbbbbbbbbff',
+'mmmmmwwwwwwwwwwwooff',
+'.ooooooooooooooo..f.'],
+sunfish:[ // 翻車魚
+'.......ff.......',
+'.......ff.......',
+'...ooooffoooo...',
+'..obbbbbbbbbbo..',
+'.obebbbbbbbbbof.',
+'.obbbbbbbbbbbbff',
+'.owwwwwwwwwwwof.',
+'..owwwwwwwwwwo..',
+'...oooowwoooo...',
+'.......ff.......',
+'.......ff.......'],
+flying:[ // 飛魚（大胸鰭）
+'..........ffff........',
+'.......ffffff.........',
+'....oooooooooooooo..f.',
+'..oobebbbbbbbbbbbboff.',
+'.obbbbbbbbbbbbbbbbbff.',
+'..oowwwwwwwwwwwwwwooff',
+'....oooooooooooooo..f.',
+'.......ffffff.........',
+'..........ffff........'],
+pleco:[ // 琵琶鼠（大背鰭、扁）
+'.....fffffff.........',
+'....fffffffff........',
+'..ooooooooooooooo....',
+'.obebbbbbbbbbbbbbooff',
+'obbbbbbbbbbbbbbbbbbff',
+'mowwwwwwwwwwwwwwwooff',
+'..oofff..ooooooo.....'],
+sucker:[ // 爬岩鰍（扁、寬胸鰭）
+'.......................',
+'....ooooooooooooo......',
+'..oobebbbbbbbbbbboooo..',
+'.obbbbbbbbbbbbbbbbbbbff',
+'.ffffffwwwwwwwwwwooooff',
+'fffffff.ffff...........'],
+};
 const SPECIES=[
- {id:'tilapia',name:'吳郭魚',stars:1,pool:['stream','sea'],len:[15,35],sci:'Oreochromis mossambicus',desc:'原產非洲的強韌魚種，幾乎哪裡的水都活得下去。',art:['....fffffff.......','...fobbbbbbof.....','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwbbbbbbbbbbbofff','..wwwwbbbbbbbo..f.','...owwwwwwwwo.....','....ff....ff......']},
- {id:'mosquito',name:'大肚魚',stars:1,pool:['stream'],len:[2,5],sci:'Gambusia affinis',desc:'直接生下小魚的卵胎生小魚，常在水溝邊游來游去。',art:['......ooo.........','....oobbbboo......','..oebbbbbbbbbo.ff.','.obbbbbbbbbbbbfff.','..wwwwwwwbbbbo.ff.','....wwwwwwoo......','......f...........']},
- {id:'carp',name:'鯉魚',stars:1,pool:['stream','sea'],len:[30,70],sci:'Cyprinus carpio',desc:'嘴邊有兩對鬚，可以活好幾十年。',art:['.....ooooooo......','...oobbbbbbbboo..f','..obbbbbbbbbbbbbff','.obebbbbbbbbbbbbff','mobbbbbbbbbbbbbbff','m.wwwbbbbbbbbbboff','...wwwwwwwwwwoo..f','.....ff....ff.....']},
- {id:'ayu',name:'香魚',stars:2,pool:['stream'],len:[12,25],sci:'Plecoglossus altivelis',desc:'只在乾淨的溪流生活，大多一年就走完一生。',art:['......ooooo.......','...ooobbbbbooo..f.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','.wwwwwwbbbbbbbboff','...wwwwwwwwwooo.f.','......ff..ff......']},
- {id:'zacco',name:'溪哥',stars:2,pool:['stream'],len:[10,18],sci:'Opsariichthys pachycephalus',desc:'台灣溪流常見的小魚，繁殖期雄魚會換上鮮豔的婚姻色。',art:['.....oooooo.......','...oobbbbbbboo..f.','.obebbbbbbbbbbbbff','obbbbbbbbbbbbbboff','.wwwwwbbbbbbbboo.f','...wwwwwwwwwoo....','.....ffffff.......']},
- {id:'formosana',name:'櫻花鉤吻鮭',stars:4,pool:['stream'],len:[20,40],sci:'Oncorhynchus formosanus',desc:'冰河時期留下來的陸封型鮭魚，只住在大甲溪上游，是台灣的國寶魚。',art:['......ooooo.......','...ooobbbbbboo.ff.','.oobebbbbbbbbbboff','obbbbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','.wwwwwbbbbbbbbbo.f','...wwwwwwwwwwoo...','.....ff...ff......']},
- {id:'milkfish',name:'虱目魚',stars:1,pool:['sea'],len:[30,60],sci:'Chanos chanos',desc:'台南早餐的主角，鱗片銀亮、游得很快。',art:['.......ooo......f.','....ooobbbooo..ff.','..oobbbbbbbbbbofff','.oebbbbbbbbbbbbbf.','obbbbbbbbbbbbbbbf.','.wwwwwwbbbbbbbboff','...wwwwwwwwwwoo.ff','................f.']},
- {id:'seabream',name:'黑鯛',stars:2,pool:['sea'],len:[20,45],sci:'Acanthopagrus schlegelii',desc:'常在防波堤被釣起，聰明又謹慎，釣客很愛牠。',art:['.....fffff........','...oobbbbbbo......','..obbbbbbbbbbo..f.','.obebbbbbbbbbbofff','obbbbbbbbbbbbbbfff','.wwwbbbbbbbbbbofff','..wwwwwwbbbbbo..f.','....wwwwwwwoo.....','......ff..ff......']},
- {id:'puffer',name:'河豚',stars:2,pool:['sea'],len:[10,30],sci:'Takifugu niphobles',desc:'受到威脅會把身體鼓成一顆球。',art:['.....ooooooo......','...oobbbbbbbboo...','..obbbbbbbbbbbbof.','.obebbbbbbbbbbbbff','.obbbbbbbbbbbbbbff','.owwwwwwwwwwwwwof.','..owwwwwwwwwwwwo..','...oowwwwwwwwoo...','.....ooooooo......']},
- {id:'mahi',name:'鬼頭刀',stars:3,pool:['sea'],len:[60,140],sci:'Coryphaena hippurus',desc:'額頭高高隆起，剛出水時身上是亮綠和金黃色。',art:['oooffffffffff.....','obbbbbbbbbbbbbo..f','obebbbbbbbbbbbbbff','obbbbbbbbbbbbbbbff','owwwbbbbbbbbbbboff','.owwwwwwwwwwwoo..f','....ffffff........']}
+ {"id":"tilapia","name":"莫三比克口孵非鯽","alias":"吳郭魚","sci":"Oreochromis mossambicus","fishdb":"381623","pool":["stream","sea"],"stars":1,"len":[6,27],"juv":10,"shape":"bream","col":{"b":"#6b7680","o":"#2e343a","w":"#c9ccd0","f":"#5a6066","p":"#8a8f94"},"pat":"dots","breed":{"col":{"b":"#2a2d30","f":"#e0302a"}},"desc":"什麼髒水都撐得住的狠角色，野外幾乎都是分不清的雜交種。"},
+ {"id":"mosquito","name":"食蚊魚","alias":"大肚魚","sci":"Gambusia affinis","fishdb":"381033","pool":["stream","sea"],"stars":1,"len":[1,3],"juv":1,"shape":"slim","col":{"b":"#c8b88a","o":"#5e4a2e","w":"#f0ece0","f":"#6b5034","p":"#1e1a16"},"sex":1,"desc":"當年被請來吃孑孓，結果把原生青鱂魚擠到快消失。"},
+ {"id":"carp","name":"鯉","alias":"鯉魚","sci":"Cyprinus carpio carpio","fishdb":"381007","pool":["stream"],"stars":1,"len":[16,77],"juv":28,"shape":"carp","col":{"b":"#9a8a50","o":"#4a3e22","w":"#d8d8d0","f":"#c9a640","p":"#3a3a30"},"desc":"曾被誤認成外來魚，後來研究才把牠正名為臺灣原生種。"},
+ {"id":"crucian","name":"鯽","alias":"鯽魚","sci":"Carassius auratus auratus","fishdb":"381001","pool":["stream"],"stars":1,"len":[5,22],"juv":8,"shape":"bream","col":{"b":"#a8adb0","o":"#555a5e","w":"#e8e2c8","f":"#d8d8d2","p":"#8a8f92"},"desc":"生性敏感又機警，最愛躲在水草亂長的泥底淺水。"},
+ {"id":"grasscarp","name":"草魚","sci":"Ctenopharyngodon idella","fishdb":"381004","pool":["stream"],"stars":1,"len":[22,105],"juv":38,"shape":"fusi","col":{"b":"#6e7a4a","o":"#3a4226","w":"#e6e8e8","f":"#c8b860","p":"#8a9470"},"desc":"愛啃水草的大塊頭，四大家魚之一，最大可長到150公分。"},
+ {"id":"silvercarp","name":"鰱","alias":"鰱魚","sci":"Hypophthalmichthys molitrix","fishdb":"381013","pool":["stream"],"stars":1,"len":[16,74],"juv":26,"shape":"fusi","col":{"b":"#c8ccd0","o":"#6a7076","w":"#f2f4f6","f":"#b8bcc0","p":"#9aa0a6"},"desc":"鰓耙像海綿濾網專吃浮游植物，還很會跳；魚膽有毒別吃。"},
+ {"id":"bighead","name":"鱅","alias":"大頭鰱","sci":"Hypophthalmichthys nobilis","fishdb":"380999","pool":["stream"],"stars":1,"len":[22,102],"juv":36,"shape":"fusi","col":{"b":"#6a6a58","o":"#2e302a","w":"#eceef0","f":"#d0d2d0","p":"#1a1a1a"},"pat":"dots","desc":"大頭慢吞吞地濾食浮游動物，能活20年、重達60公斤。"},
+ {"id":"loach","name":"泥鰍","sci":"Misgurnus anguillicaudatus","fishdb":"380995","pool":["stream"],"stars":1,"len":[2,7],"juv":2,"shape":"loach","col":{"b":"#7a6a50","o":"#3a3020","w":"#e8d890","f":"#8a7a5a","p":"#2a2018"},"pat":"dots","desc":"水裡缺氧就浮上來吞空氣，靠腸子也能呼吸。"},
+ {"id":"pleco","name":"豹紋翼甲鯰","alias":"琵琶鼠","sci":"Pterygoplichthys pardalis","fishdb":"395254","pool":["stream"],"stars":1,"len":[6,30],"juv":11,"shape":"pleco","col":{"b":"#2a2622","o":"#0a0806","w":"#f0ead8","f":"#2a2622","p":"#e8d070"},"pat":"blotch","desc":"全身披硬骨板，用吸盤嘴刮藻，髒水裡照樣活得好好的。"},
+ {"id":"similgoby","name":"極樂吻鰕虎","sci":"Rhinogobius similis","fishdb":"381839","pool":["stream","sea"],"stars":1,"len":[1,6],"juv":2,"shape":"goby","col":{"b":"#9a8a6a","o":"#4a3e2a","w":"#d8d0b8","f":"#e0a030","p":"#3a6ad0"},"pat":"spot","desc":"臉上有蟲蟲般的花紋，乾淨埤塘常是霸主；吃起來會苦。"},
+ {"id":"ayu","name":"香魚","sci":"Plecoglossus altivelis altivelis","fishdb":"381258","pool":["stream","sea"],"stars":2,"len":[10,49],"juv":18,"shape":"slim","col":{"b":"#7a8a3a","o":"#3a4418","w":"#f2f2ea","f":"#8a9450","p":"#f0d020"},"pat":"spot","desc":"降海型產完卵就走完一生，才被叫「年魚」；聞起來像哈密瓜。"},
+ {"id":"zacco","name":"粗首馬口鱲","alias":"溪哥","sci":"Opsariichthys pachycephalus","fishdb":"381031","pool":["stream"],"stars":2,"len":[2,11],"juv":4,"shape":"slim","col":{"b":"#9aaa94","o":"#3e4a3a","w":"#eef0ee","f":"#e88a40","p":"#2aa898"},"pat":"bar","sex":1,"desc":"臺灣特有的溪釣明星，卻被亂放流到花東變成入侵者。"},
+ {"id":"zplatypus","name":"平頜鱲","alias":"青貓","sci":"Zacco platypus","fishdb":"381032","pool":["stream"],"stars":2,"len":[3,14],"juv":5,"shape":"slim","col":{"b":"#8c9a84","o":"#3a4636","w":"#eef0ee","f":"#e8603a","p":"#2aa890"},"pat":"bar","sex":1,"desc":"外號「日本溪哥」的外來客，目前只在淡水河流域出沒。"},
+ {"id":"oevolans","name":"長鰭馬口鱲","sci":"Opsariichthys evolans","fishdb":"395249","pool":["stream"],"stars":2,"len":[2,8],"juv":3,"shape":"slim","col":{"b":"#d8dcd8","o":"#5a6460","w":"#f2f2f0","f":"#e8c040","p":"#3aa0a8"},"pat":"bar","sex":1,"desc":"雄魚胸鰭長過腹鰭，身上11到14條青色亮紋數得一清二楚。"},
+ {"id":"twbarb","name":"臺灣石𩼧","sci":"Acrossocheilus paradoxus","fishdb":"380997","pool":["stream"],"stars":2,"len":[3,14],"juv":5,"shape":"carp","col":{"b":"#a8a850","o":"#4a4a20","w":"#ece8d8","f":"#e8dc90","p":"#1e1e1a"},"pat":"bar","sex":1,"desc":"身上7條黑橫帶，白天躲石縫晚上才出門；繁殖季魚卵有毒。"},
+ {"id":"kuhua","name":"臺灣白甲魚","alias":"苦花","sci":"Onychostoma barbatulum","fishdb":"381030","pool":["stream"],"stars":2,"len":[7,31],"juv":11,"shape":"carp","col":{"b":"#d4d8d0","o":"#5a6048","w":"#ece8c8","f":"#a8ac90","p":"#1a1a1a"},"pat":"dots","desc":"下巴像鏟子，專刮石頭上的藻類吃，是溪釣主角之一。"},
+ {"id":"candidia","name":"臺灣鬚鱲","alias":"台灣馬口魚","sci":"Candidia barbata","fishdb":"381000","pool":["stream"],"stars":2,"len":[3,14],"juv":5,"shape":"slim","col":{"b":"#8a8070","o":"#3a342a","w":"#e0e0dc","f":"#ece8c0","p":"#1e2a48"},"pat":"line","sex":1,"desc":"鰓蓋到尾巴拉一條藍黑縱帶，貪吃到有時會胖得誇張。"},
+ {"id":"mtgoby","name":"明潭吻鰕虎","sci":"Rhinogobius candidianus","fishdb":"381836","pool":["stream"],"stars":2,"len":[1,6],"juv":2,"shape":"goby","col":{"b":"#a89878","o":"#4a4030","w":"#e0d8c4","f":"#e8c840","p":"#d83a2a"},"pat":"line","desc":"眼前兩條紅線像畫了眼線，是臺灣最常見的吻鰕虎之一。"},
+ {"id":"sicyop","name":"日本瓢鰭鰕虎","alias":"日本禿頭鯊","sci":"Sicyopterus japonicus","fishdb":"381850","pool":["stream","sea"],"stars":2,"len":[2,10],"juv":4,"shape":"goby","col":{"b":"#7a6a48","o":"#3a2e1c","w":"#c8bca0","f":"#8a6a48","p":"#3a2818"},"pat":"bar","sex":1,"desc":"腹鰭變成強力吸盤，牢牢吸在溪底石頭上不怕沖。"},
+ {"id":"hemimyzon","name":"臺灣間爬岩鰍","sci":"Hemimyzon formosanus","fishdb":"380991","pool":["stream"],"stars":2,"len":[2,7],"juv":2,"shape":"sucker","col":{"b":"#6a7a48","o":"#2a3018","w":"#d8d4b8","f":"#c8a878","p":"#2a2a1a"},"pat":"blotch","desc":"身體扁平像貼紙，用胸鰭腹鰭貼在急流的石頭上。"},
+ {"id":"metzia","name":"臺灣梅氏鯿","sci":"Metzia formosae","fishdb":"381023","pool":["stream"],"stars":4,"len":[2,8],"juv":3,"shape":"slim","col":{"b":"#d8dcdc","o":"#5a6066","w":"#f2f4f4","f":"#c8ccd0","p":"#3a3e42"},"pat":"line","desc":"越來越稀少，已被公告為保育類，只在北部埤塘湖沼現身。"},
+ {"id":"bitterling","name":"高體鰟鮍","sci":"Rhodeus ocellatus ocellatus","fishdb":"381025","pool":["stream"],"stars":2,"len":[1,4],"juv":2,"shape":"bream","col":{"b":"#b8c4cc","o":"#4a5866","w":"#e8ecee","f":"#c8ccd0","p":"#4ab0e0"},"pat":"line","sex":1,"desc":"媽媽把卵產進河蚌裡，寶寶在蚌殼中長大才游出來。"},
+ {"id":"catfish","name":"鯰","alias":"鯰魚","sci":"Silurus asotus","fishdb":"382926","pool":["stream"],"stars":2,"len":[15,70],"juv":25,"shape":"cat","col":{"b":"#6a6a5a","o":"#2a2a22","w":"#f0f0ec","f":"#5a5a4a","p":"#d8d8d0"},"pat":"blotch","desc":"白天躲在草叢石縫，晚上才出來狩獵，又兇又貪吃。"},
+ {"id":"snakehead","name":"斑鱧","alias":"七星鱧","sci":"Channa maculata","fishdb":"381618","pool":["stream"],"stars":2,"len":[7,31],"juv":11,"shape":"snakehead","col":{"b":"#4a4e4a","o":"#1a1c1a","w":"#9a9e9a","f":"#3a3e3a","p":"#0e0e0e"},"pat":"blotch","desc":"缺氧爛泥裡也活得下去，爸媽還會築巢顧小孩。"},
+ {"id":"fishtiger","name":"小盾鱧","alias":"魚虎","sci":"Channa micropeltes","fishdb":"395665","pool":["stream"],"stars":2,"len":[20,91],"juv":32,"shape":"snakehead","col":{"b":"#6a5e4e","o":"#2a241c","w":"#d8d6d0","f":"#5a5044","p":"#121010"},"pat":"line","desc":"放生後在日月潭稱霸的外來掠食者，最大可到130公分。"},
+ {"id":"largemouthbass","name":"大口黑鱸","sci":"Micropterus salmoides","fishdb":"395340","pool":["stream"],"stars":2,"len":[15,68],"juv":24,"shape":"grouper","col":{"b":"#5f8a3e","o":"#1f3a1a","w":"#dfe8c8","f":"#5a7a40","p":"#2a3a20"},"pat":"line","desc":"從北美來的猛將，地盤意識超強，爸爸還會挖巢顧小孩。","alias":"加州鱸"},
+ {"id":"marbledgoby","name":"斑駁尖塘鱧","alias":"筍殼魚","sci":"Oxyeleotris marmorata","fishdb":"381663","pool":["stream"],"stars":2,"len":[10,46],"juv":16,"shape":"goby","col":{"b":"#6b4a2a","o":"#3a2410","w":"#dccaa8","f":"#a08060","p":"#2e1c0e"},"pat":"blotch","desc":"懶得游泳的宅魚，整天躲在石縫裡等小魚自己送上門。"},
+ {"id":"japaneseeel","name":"日本鰻鱺","alias":"白鰻","sci":"Anguilla japonica","fishdb":"380711","pool":["stream","sea"],"stars":4,"len":[22,105],"juv":38,"shape":"eel","col":{"b":"#4a5c52","o":"#202a25","w":"#f2f2ec","f":"#4a5c52","p":"#4a5c52"},"desc":"一生大多住溪裡，最後游回馬里亞納深海產卵，產完卵就告別。"},
+ {"id":"giantmottledeel","name":"花鰻鱺","alias":"鱸鰻","sci":"Anguilla marmorata","fishdb":"380712","pool":["stream","sea"],"stars":3,"len":[30,140],"juv":50,"shape":"eel","col":{"b":"#6b4f2a","o":"#3a2a14","w":"#f2ead0","f":"#6b4f2a","p":"#a8b84a"},"pat":"blotch","desc":"溪裡的大地主，固定佔一個深潭洞穴，偶爾還爬上岸抓青蛙。"},
+ {"id":"hollandsbarb","name":"何氏棘鲃","sci":"Spinibarbus hollandi","fishdb":"381027","pool":["stream"],"stars":3,"len":[9,42],"juv":15,"shape":"carp","col":{"b":"#7a8a94","o":"#3a454c","w":"#eef2f4","f":"#e8884a","p":"#1e1e1e"},"pat":"spot","desc":"愛急流又愛跳的台灣特有種，被放到北部反而會吃掉在地魚。"},
+ {"id":"topmouthculter","name":"翹嘴鮊","alias":"總統魚","sci":"Culter alburnus","fishdb":"381005","pool":["stream"],"stars":3,"len":[12,56],"juv":20,"shape":"slim","col":{"b":"#8fa898","o":"#4a5a50","w":"#f0f4f2","f":"#a0a8a8","p":"#8fa898"},"desc":"下巴往上翹到嘴巴幾乎垂直，專在水面附近突襲小魚。"},
+ {"id":"taiwanbitterling","name":"臺灣石鮒","alias":"革條田中鰟鮍","sci":"Paratanakia himantegus","fishdb":"381019","pool":["stream"],"stars":3,"len":[1,6],"juv":2,"shape":"bream","col":{"b":"#c8a870","o":"#6a5030","w":"#eee0c0","f":"#d84a3a","p":"#1a1a1a"},"pat":"line","sex":1,"desc":"媽媽有根細長產卵管，把卵藏進河蚌裡當保險箱。"},
+ {"id":"paradisefish","name":"蓋斑鬥魚","alias":"台灣鬥魚","sci":"Macropodus opercularis","fishdb":"381391","pool":["stream"],"stars":3,"len":[1,4],"juv":2,"shape":"bream","col":{"b":"#a08a5a","o":"#4a3a20","w":"#d8c8a0","f":"#d8b040","p":"#2aa08a"},"pat":"bar","sex":1,"desc":"會直接吸空氣的小勇士，還專吃孑孓，是天然滅蚊器。"},
+ {"id":"ricefish","name":"中華青鱂","sci":"Oryzias sinensis","fishdb":"380858","pool":["stream"],"stars":4,"len":[1,3],"juv":1,"shape":"slim","col":{"b":"#b8bcc0","o":"#5a5e62","w":"#f2f4f6","f":"#5a5a5a","p":"#222222"},"pat":"line","breed":{"col":{"f":"#111111"}},"desc":"稻田裡的迷你魚，媽媽會把卵掛在身上一陣子才黏到水草。","alias":"青鱂魚"},
+ {"id":"kikuchiminnow","name":"菊池氏細鯽","sci":"Aphyocypris kikuchii","fishdb":"380998","pool":["stream"],"stars":4,"len":[1,6],"juv":2,"shape":"slim","col":{"b":"#c8b088","o":"#6a5a40","w":"#e8e8e0","f":"#f0e8c0","p":"#6a8aa8"},"pat":"line","desc":"東部特有的跳跳小魚，最愛吃掉進水面的昆蟲。"},
+ {"id":"taiwanbagrid","name":"長脂瘋鱨","alias":"脂鮠","sci":"Tachysurus adiposalis","fishdb":"382921","pool":["stream"],"stars":3,"len":[2,10],"juv":4,"shape":"cat","col":{"b":"#3a3a3a","o":"#1a1a1a","w":"#5e5e5e","f":"#3a3a3a","p":"#3a3a3a"},"desc":"白天躲石縫、晚上才出門，鰭上的硬棘很利，抓牠要小心。"},
+ {"id":"highbodybarb","name":"高身白甲魚","alias":"高身鏟頜魚","sci":"Onychostoma alticorpus","fishdb":"381029","pool":["stream"],"stars":4,"len":[8,35],"juv":12,"shape":"carp","col":{"b":"#4a6a5a","o":"#243a2e","w":"#f4c0a8","f":"#f0a0a8","p":"#ffffff"},"desc":"下巴像鏟子，專在湍急大石頭上刮藻吃的台灣特有種。"},
+ {"id":"taiwanwhitefish","name":"臺灣副細鯽","sci":"Pararasbora moltrechti","fishdb":"381020","pool":["stream"],"stars":4,"len":[1,6],"juv":2,"shape":"slim","col":{"b":"#c8ccd0","o":"#3a2e24","w":"#f0f2f4","f":"#c8ccd0","p":"#1a1a1a"},"pat":"dots","desc":"只住中部清澈溪流的特有小魚，成群在水中層游來游去。"},
+ {"id":"formosana","name":"臺灣櫻花鉤吻鮭","alias":"櫻花鉤吻鮭","sci":"Oncorhynchus masou formosanus","fishdb":"382788","pool":["stream"],"stars":5,"len":[6,28],"juv":10,"shape":"salmon","col":{"b":"#2f4a40","o":"#14241e","w":"#eef0f0","f":"#4a5a54","p":"#1a2420"},"pat":"spot","sex":1,"desc":"冰河時期留下的國寶魚，被困在高山冷溪裡再也回不了海。","protect":1},
+ {"id":"milkfish","name":"虱目魚","sci":"Chanos chanos","fishdb":"381130","pool":["stream","sea"],"stars":1,"len":[27,126],"juv":45,"shape":"fusi","col":{"b":"#4a8a7a","o":"#24443c","w":"#eef2f2","f":"#8aa8a0","p":"#4a8a7a"},"desc":"鹹水淡水通吃的台灣餐桌常客，但很怕冷，10度以下會凍死。"},
+ {"id":"chubmackerel","name":"白腹鯖","alias":"花飛","sci":"Scomber japonicus","fishdb":"382494","pool":["sea"],"stars":1,"len":[10,45],"juv":16,"shape":"fusi","col":{"b":"#24406a","o":"#101e34","w":"#f2f0dc","f":"#3a4a60","p":"#0e2a5a"},"pat":"blotch","desc":"白天待深處、晚上衝上來吃宵夜，還會被燈光吸引的鯖魚。"},
+ {"id":"roundscad","name":"藍圓鰺","alias":"四破","sci":"Decapterus maruadsi","fishdb":"381535","pool":["sea"],"stars":1,"len":[4,18],"juv":6,"shape":"fusi","col":{"b":"#3a8a8a","o":"#1a4444","w":"#eef2f2","f":"#e0c840","p":"#e0b030"},"pat":"line","desc":"成群在近海高速巡游，側線一排金黃稜鱗閃閃發亮。"},
+ {"id":"japaneseanchovy","name":"日本鯷","sci":"Engraulis japonicus","fishdb":"380976","pool":["sea"],"stars":1,"len":[3,13],"juv":4,"shape":"slim","col":{"b":"#2a3a5a","o":"#121a2a","w":"#eef0f2","f":"#c8d0d8","p":"#2a4a5a"},"pat":"line","months":[2,3],"desc":"每年早春大批南下產卵，順便把一堆掠食魚也引來。"},
+ {"id":"jarbuaterapon","name":"花身鯻","alias":"花身雞魚","sci":"Terapon jarbua","fishdb":"382659","pool":["stream","sea"],"stars":1,"len":[5,25],"juv":9,"shape":"bream","col":{"b":"#c8a868","o":"#5a4420","w":"#f0f0ea","f":"#e8e0b8","p":"#1a1a1a"},"pat":"line","desc":"身上三條彎彎黑帶好認，貪吃又耐鹹淡，爸爸還會顧卵。"},
+ {"id":"silversillago","name":"多鱗沙鮻","sci":"Sillago sihama","fishdb":"382631","pool":["stream","sea"],"stars":1,"len":[5,22],"juv":8,"shape":"slim","col":{"b":"#b89a6a","o":"#5a4830","w":"#f4f0e8","f":"#e8e4dc","p":"#b89a6a"},"desc":"遇到危險就一頭鑽進沙裡躲起來，是灘釣的人氣目標。"},
+ {"id":"rabbitfish","name":"褐臭肚魚","alias":"臭肚魚","sci":"Siganus fuscescens","fishdb":"382614","pool":["stream","sea"],"stars":1,"len":[6,28],"juv":10,"shape":"bream","col":{"b":"#6a7a4a","o":"#34401f","w":"#e8ecec","f":"#8a9060","p":"#d8eef8"},"pat":"spot","desc":"吃藻吃到肚子有怪味，鰭刺還帶毒，是釣客五大危險魚之一。"},
+ {"id":"mudskipper","name":"彈塗魚","sci":"Periophthalmus modestus","fishdb":"381821","pool":["stream","sea"],"stars":1,"len":[2,7],"juv":2,"shape":"goby","col":{"b":"#7a6a5a","o":"#3a3028","w":"#d8d4cc","f":"#8a8070","p":"#3a3a3a"},"pat":"bar","desc":"用胸鰭在泥灘上爬又會跳，根本是想當陸地動物的魚。"},
+ {"id":"bluedamsel","name":"藍刻齒雀鯛","sci":"Chrysiptera cyanea","fishdb":"382354","pool":["sea"],"stars":1,"len":[1,6],"juv":2,"shape":"bream","col":{"b":"#3a8ae0","o":"#1a4a8a","w":"#7ab0f0","f":"#3a8ae0","p":"#111111"},"pat":"spot","sex":1,"desc":"一身亮藍的珊瑚礁小魚，常見一隻公魚帶著一群母魚。"},
+ {"id":"seabream","name":"黑棘鯛","alias":"黑鯛","sci":"Acanthopagrus schlegelii","fishdb":"382635","pool":["stream","sea"],"stars":2,"len":[8,35],"juv":12,"shape":"bream","col":{"b":"#4a4a4e","o":"#222226","w":"#8a8a90","f":"#4a4440","p":"#3a3028"},"pat":"bar","desc":"年輕時全是公的，三四歲後才變成母的，堤防邊超常見。"},
+ {"id":"yellowfinbream","name":"黃鰭棘鯛","alias":"黃鰭鯛","sci":"Acanthopagrus latus","fishdb":"382634","pool":["stream","sea"],"stars":2,"len":[5,25],"juv":9,"shape":"bream","col":{"b":"#c8c8c4","o":"#6a6a66","w":"#eeeeea","f":"#f0d020","p":"#d8a830"},"pat":"line","desc":"魚新鮮時腹鰭臀鰭亮黃色，身上還有一排排金點條紋。"},
+ {"id":"sarba","name":"平鯛","alias":"黃錫鯛","sci":"Rhabdosargus sarba","fishdb":"382643","pool":["stream","sea"],"stars":2,"len":[12,56],"juv":20,"shape":"bream","col":{"b":"#b8c0c8","o":"#4a5560","w":"#e4e8ec","f":"#e8c840","p":"#8fd0d8"},"pat":"line","desc":"小時候住河口，長大才慢慢往深處搬家，特別愛吃貝類。"},
+ {"id":"girella","name":"瓜子鱲","alias":"黑毛","sci":"Girella punctata","fishdb":"381912","pool":["sea"],"stars":2,"len":[8,35],"juv":12,"shape":"bream","col":{"b":"#5e5040","o":"#2a2218","w":"#8a7a66","f":"#4e4234","p":"#2a2018"},"pat":"dots","desc":"冬天吃素啃海藻、夏天改吃小動物，是磯釣客的心頭好。"},
+ {"id":"hairtail","name":"白帶魚","sci":"Trichiurus lepturus","fishdb":"382664","pool":["sea"],"stars":2,"len":[35,164],"juv":58,"shape":"ribbon","col":{"b":"#e8eef2","o":"#7a8a96","w":"#ffffff","f":"#f0f4f8","p":"#1a1a1a"},"desc":"白天躲在深水層，黃昏才游上來，胃口大得嚇人。"},
+ {"id":"jackmackerel","name":"日本竹筴魚","sci":"Trachurus japonicus","fishdb":"381555","pool":["sea"],"stars":2,"len":[8,35],"juv":12,"shape":"fusi","col":{"b":"#4aa098","o":"#1e4a48","w":"#e8eef0","f":"#e8c840","p":"#1a1a1a"},"desc":"側線上排滿又高又硬的稜鱗，鰓蓋上方還有一顆黑斑。"},
+ {"id":"pomfret","name":"銀鯧","alias":"白鯧","sci":"Pampus argenteus","fishdb":"382652","pool":["sea"],"stars":2,"len":[9,42],"juv":15,"shape":"disc","col":{"b":"#9aa8b4","o":"#4a5868","w":"#eef2f4","f":"#d8c880","p":"#4a5868"},"desc":"沒有腹鰭的高級魚，肉嫩到入口即化，可惜放久就爛。"},
+ {"id":"seabass","name":"日本花鱸","alias":"七星鱸","sci":"Lateolabrax japonicus","fishdb":"382233","pool":["stream","sea"],"stars":2,"len":[15,71],"juv":26,"shape":"grouper","col":{"b":"#8a9aa8","o":"#3a4652","w":"#eef2f4","f":"#b89060","p":"#1a1a1a"},"pat":"dots","desc":"個性兇猛，常溯進淡水找魚蝦吃，身體上半部撒滿黑點。"},
+ {"id":"barramundi","name":"尖吻鱸","alias":"金目鱸","sci":"Lates calcarifer","fishdb":"381561","pool":["stream","sea"],"stars":2,"len":[30,140],"juv":50,"shape":"grouper","col":{"b":"#c8ccd0","o":"#4a5058","w":"#f0f2f4","f":"#505860","p":"#4a5058"},"desc":"先當爸爸再變媽媽的魚，在河口生寶寶，而且很怕冷。"},
+ {"id":"scat","name":"金錢魚","alias":"變身苦","sci":"Scatophagus argus","fishdb":"382462","pool":["stream","sea"],"stars":2,"len":[6,27],"juv":10,"shape":"disc","col":{"b":"#8a6a3a","o":"#3a2a14","w":"#d8d0c0","f":"#a08048","p":"#1a1410"},"pat":"spot","desc":"背鰭硬棘有毒，名列釣魚界五大危險魚的第五名！"},
+ {"id":"puffer","name":"黑點多紀魨","alias":"河豚","sci":"Takifugu niphobles","fishdb":"383040","pool":["stream","sea"],"stars":2,"len":[2,10],"juv":4,"shape":"puffer","col":{"b":"#8a5a3a","o":"#3a2214","w":"#f4f0e4","f":"#e8c030","p":"#f0e0c0"},"pat":"dots","desc":"肝和卵巢有劇毒千萬別吃；春天會成群到岸邊藻叢產卵。"},
+ {"id":"porcupine","name":"六斑二齒魨","alias":"刺河豚","sci":"Diodon holocanthus","fishdb":"382979","pool":["sea"],"stars":2,"len":[8,35],"juv":12,"shape":"spiny","col":{"b":"#9a8a70","o":"#4a3e2e","w":"#f4f2ec","f":"#d8d0c0","p":"#3a2e20"},"pat":"blotch","desc":"全身長滿會動的硬刺，常被釣客嫌棄丟在岸上。"},
+ {"id":"bigmudskipper","name":"大彈塗魚","sci":"Boleophthalmus pectinirostris","fishdb":"381727","pool":["stream","sea"],"stars":2,"len":[3,14],"juv":5,"shape":"goby","col":{"b":"#6a7a60","o":"#2e3a28","w":"#c8ccbc","f":"#3a6ac0","p":"#f4f4f4"},"pat":"dots","desc":"皮膚能幫忙呼吸，在泥灘上爬爬跳跳，求偶還會跳舞。"},
+ {"id":"flounder","name":"牙鮃","alias":"比目魚","sci":"Paralichthys olivaceus","fishdb":"382745","pool":["sea"],"stars":2,"len":[15,72],"juv":26,"shape":"flat","col":{"b":"#6a5e4e","o":"#2e2820","w":"#e8e4dc","f":"#5e5444","p":"#2e2418"},"pat":"spot","desc":"兩隻眼睛都擠在左側，專門抓海底的蝦蟹和小魚。"},
+ {"id":"moray","name":"疏斑裸胸鯙","alias":"錢鰻","sci":"Gymnothorax undulatus","fishdb":"380777","pool":["sea"],"stars":2,"len":[22,105],"juv":38,"shape":"eel","col":{"b":"#3a2e22","o":"#1a140e","w":"#4a3e30","f":"#3a2e22","p":"#f4f0e0"},"pat":"line","desc":"頂著黃色的頭、披滿白色波浪紋，住在礁岩洞縫裡。"},
+ {"id":"goldline","name":"金線魚","sci":"Nemipterus virgatus","fishdb":"382192","pool":["sea"],"stars":2,"len":[5,24],"juv":9,"shape":"fusi","col":{"b":"#f0a0b0","o":"#a04a5a","w":"#f4eef0","f":"#f8c0c8","p":"#f0c830"},"pat":"line","desc":"粉紅身體拉著幾條金黃縱帶，尾鰭上葉還甩出一條長絲。"},
+ {"id":"rockfish","name":"石狗公","sci":"Sebastiscus marmoratus","fishdb":"382891","pool":["sea"],"stars":2,"len":[4,21],"juv":8,"shape":"bream","col":{"b":"#8a4a30","o":"#3a1a10","w":"#c89a80","f":"#9a4a30","p":"#ece4d8"},"pat":"blotch","desc":"鰭棘基部藏著毒腺，而且是直接生出小魚的胎生魚。"},
+ {"id":"filefish","name":"單角革單棘魨","alias":"剝皮魚","sci":"Aluterus monoceros","fishdb":"382985","pool":["sea"],"stars":2,"len":[11,53],"juv":19,"shape":"bream","col":{"b":"#8a8270","o":"#3e3a30","w":"#b8b0a0","f":"#e0c040","p":"#c8b880"},"pat":"blotch","desc":"皮厚到要先剝掉才能吃，「剝皮魚」就是這樣來的。"},
+ {"id":"sicklefish","name":"斑點雞籠鯧","sci":"Drepane punctata","fishdb":"381643","pool":["stream","sea"],"stars":2,"len":[8,35],"juv":12,"shape":"disc","col":{"b":"#b8bec4","o":"#4e5660","w":"#e4e8ec","f":"#f0e0a0","p":"#2a2a2a"},"pat":"bar","desc":"下巴長著一小撮鬚，不同鹽度的水都能適應。"},
+ {"id":"bigeye","name":"大棘大眼鯛","alias":"紅目鰱","sci":"Priacanthus macracanthus","fishdb":"382414","pool":["sea"],"stars":2,"len":[4,21],"juv":8,"shape":"bream","col":{"b":"#f06a6a","o":"#8a2020","w":"#f4e8e8","f":"#f08080","p":"#f0d040"},"desc":"大眼睛的桃紅色魚，鱗片硬到乾脆連皮一起剝掉。"},
+ {"id":"butterfly","name":"揚旛蝴蝶魚","sci":"Chaetodon auriga","fishdb":"381573","pool":["sea"],"stars":2,"len":[3,16],"juv":6,"shape":"disc","col":{"b":"#f0e6c0","o":"#6a5a20","w":"#f8f4e8","f":"#f0c020","p":"#2a2a2a"},"pat":"line","desc":"身上斜紋交錯成直角，成魚背鰭後端還拖著一條長絲。"},
+ {"id":"threadfin","name":"多鱗四指馬鮁","alias":"午仔魚","sci":"Eleutheronema rhadinum","fishdb":"382273","pool":["stream","sea"],"stars":2,"len":[11,52],"juv":18,"shape":"fusi","col":{"b":"#a8b0b8","o":"#485058","w":"#eef2f4","f":"#6a7078","p":"#1a1a1a"},"months":[1,2,3,11,12],"desc":"胸鰭下長著4根分開的鬚狀鰭條，秋末到初春大批出現。"},
+ {"id":"fusilier","name":"雙帶鱗鰭烏尾鮗","alias":"烏尾冬","sci":"Pterocaesio digramma","fishdb":"382138","pool":["sea"],"stars":2,"len":[4,21],"juv":8,"shape":"fusi","col":{"b":"#3a7ad0","o":"#1a3a70","w":"#f4b8c8","f":"#f0e8c0","p":"#f0c830"},"pat":"line","desc":"藍背粉肚配兩條金帶，成群在中層水域快速巡游。"},
+ {"id":"mullet","name":"鯔","alias":"烏魚","sci":"Mugil cephalus","fishdb":"381182","pool":["stream","sea"],"stars":3,"len":[15,70],"juv":25,"shape":"fusi","col":{"b":"#6a7a4a","o":"#2e3a1e","w":"#f0f2ec","f":"#5a5a4a","p":"#5a4a32"},"pat":"line","months":[1,2,12],"desc":"冬至後準時南下產卵，被稱作「信魚」，魚卵就是烏魚子。"},
+ {"id":"mahi","name":"鬼頭刀","sci":"Coryphaena hippurus","fishdb":"381638","pool":["sea"],"stars":3,"len":[32,147],"juv":52,"shape":"mahi","col":{"b":"#5a8a3a","o":"#24401a","w":"#e8e8c0","f":"#6a4ab0","p":"#40c060"},"pat":"spot","sex":1,"desc":"愛躲在漂流木下乘涼，追飛魚時還會跳出水面。"},
+ {"id":"flyingfish","name":"白鰭鬚唇飛魚","sci":"Cheilopogon unicolor","fishdb":"380874","pool":["sea"],"stars":3,"len":[6,27],"juv":10,"shape":"flying","col":{"b":"#3E6FA8","o":"#1C2F5A","w":"#E6EEF5","f":"#CFE3F0"},"desc":"春夏跟著黑潮來到東南沿海，一受驚就張開胸鰭滑翔。","months":[3,4,5,6,7,8],"alias":"飛魚"},
+ {"id":"redbream","name":"真鯛","alias":"嘉鱲","sci":"Pagrus major","fishdb":"382642","pool":["sea"],"stars":3,"len":[15,70],"juv":25,"shape":"bream","col":{"b":"#f08a8a","o":"#902a30","w":"#f8f0f0","f":"#f0a0a0","p":"#4aa0f0"},"pat":"dots","desc":"背上的藍色小點長大會慢慢消失，4到6月游到淺水產卵。"},
+ {"id":"skipjack","name":"正鰹","sci":"Katsuwonus pelamis","fishdb":"382489","pool":["sea"],"stars":3,"len":[16,77],"juv":28,"shape":"tuna","col":{"b":"#3a3f9e","o":"#1c1f5a","w":"#e8eef2","f":"#4a4f8f","p":"#2a2d5e"},"pat":"line","desc":"側身有4到5條暗色縱帶，柴魚就是拿牠做的喔！"},
+ {"id":"spanish_mackerel","name":"康氏馬加鰆","alias":"土魠","sci":"Scomberomorus commerson","fishdb":"382495","pool":["stream","sea"],"stars":3,"len":[36,168],"juv":60,"shape":"fusi","col":{"b":"#8fa89a","o":"#3e5448","w":"#eef2f0","f":"#6f8579","p":"#222222"},"pat":"bar","desc":"成魚身上有五六十條波浪黑橫帶，小時候卻只是點點。"},
+ {"id":"orange_spotted_grouper","name":"點帶石斑魚","sci":"Epinephelus coioides","fishdb":"382535","pool":["stream","sea"],"stars":3,"len":[18,84],"juv":30,"shape":"grouper","col":{"b":"#b08a4a","o":"#5a4220","w":"#efe6d6","f":"#a07a3e","p":"#c0602a"},"pat":"dots","desc":"先當媽媽再變爸爸！全身撒滿橘褐色小點點。"},
+ {"id":"greater_amberjack","name":"杜氏鰤","alias":"紅甘","sci":"Seriola dumerili","fishdb":"381549","pool":["stream","sea"],"stars":3,"len":[28,133],"juv":48,"shape":"fusi","col":{"b":"#6b7f8a","o":"#2e3b44","w":"#e6e6e0","f":"#3a3a3a","p":"#e0b83a"},"pat":"line","desc":"成魚身側有一條黃色縱帶，常三兩成群在深礁區巡游。"},
+ {"id":"cobia","name":"海鱺","sci":"Rachycentron canadum","fishdb":"382432","pool":["sea"],"stars":3,"len":[30,140],"juv":50,"shape":"fusi","col":{"b":"#5a3e2a","o":"#2a1a10","w":"#e8dcae","f":"#7a3e2a","p":"#d0d6dc"},"pat":"line","desc":"小時候跟著鯊魚、魟魚撿剩菜吃，長大才自己狩獵。"},
+ {"id":"spangled_emperor","name":"青嘴龍占魚","sci":"Lethrinus nebulosus","fishdb":"382074","pool":["stream","sea"],"stars":3,"len":[13,61],"juv":22,"shape":"bream","col":{"b":"#a89880","o":"#4e4436","w":"#ddd4c4","f":"#e8dc90","p":"#3a8ad0"},"pat":"dots","desc":"每片鱗都點著一顆藍色小點，眼睛下還畫了三條藍線。"},
+ {"id":"great_barracuda","name":"巴拉金梭魚","sci":"Sphyraena barracuda","fishdb":"382645","pool":["stream","sea"],"stars":3,"len":[30,140],"juv":50,"shape":"needle","col":{"b":"#6a8aa0","o":"#2a3e50","w":"#f2f4f6","f":"#3a3a44","p":"#2a3a7a"},"pat":"bar","desc":"金梭魚家族裡最大隻，專挑逃跑中的獵物下手。"},
+ {"id":"red_tilefish","name":"日本馬頭魚","sci":"Branchiostegus japonicus","fishdb":"382147","pool":["sea"],"stars":3,"len":[7,32],"juv":12,"shape":"bream","col":{"b":"#f0b8b8","o":"#8a3030","w":"#ffffff","f":"#f5c0c8","p":"#f0d040"},"pat":"blotch","desc":"頭頂一塊肉肉的脊突然陡降，頭看起來方方的，像馬頭。"},
+ {"id":"large_yellow_croaker","name":"大黃魚","sci":"Larimichthys crocea","fishdb":"382473","pool":["stream","sea"],"stars":3,"len":[12,56],"juv":20,"shape":"fusi","col":{"b":"#b89a50","o":"#5a4820","w":"#f0c840","f":"#f5d830","p":"#e0b030"},"desc":"魚鰾會發聲，生殖期「咯咯」叫，魚群一多像水煮滾。"},
+ {"id":"lionfish","name":"魔鬼簑鮋","alias":"獅子魚","sci":"Pterois volitans","fishdb":"382867","pool":["sea"],"stars":3,"len":[6,27],"juv":10,"shape":"lion","col":{"b":"#d04a30","o":"#6a2010","w":"#f0d8c8","f":"#d84a3a","p":"#7a4a2a"},"pat":"bar","desc":"身上紅棕條紋超華麗，但背鰭棘下藏著毒腺，別亂摸！"},
+ {"id":"spotted_boxfish","name":"米點箱魨","sci":"Ostracion meleagris","fishdb":"383011","pool":["sea"],"stars":3,"len":[4,18],"juv":6,"shape":"box","col":{"b":"#3a3050","o":"#1a1428","w":"#4a405e","f":"#3a3050","p":"#f0d040"},"pat":"spot","desc":"身體像個方盒子，可是有毒，完全不能吃。"},
+ {"id":"clownfish","name":"眼斑雙鋸魚","alias":"小丑魚","sci":"Amphiprion ocellaris","fishdb":"382320","pool":["sea"],"stars":3,"len":[2,8],"juv":3,"shape":"bream","col":{"b":"#f06a1a","o":"#1a1a1a","w":"#f08030","f":"#f06a1a","p":"#ffffff"},"pat":"bar","desc":"老大是最大隻的雌魚，她不在了，老公就變性接班！"},
+ {"id":"parrotfish","name":"藍點鸚哥魚","alias":"鸚哥魚","sci":"Scarus ghobban","fishdb":"382449","pool":["sea"],"stars":3,"len":[14,63],"juv":22,"shape":"bream","col":{"b":"#c8a050","o":"#5a4420","w":"#e8d090","f":"#e8c840","p":"#3a7ad0"},"pat":"line","sex":1,"desc":"雌魚黃褐配藍紋，雄魚卻換成綠衣橘邊，像兩種魚。"},
+ {"id":"red_stingray","name":"赤魟","sci":"Hemitrygon akajei","fishdb":"383140","pool":["stream","sea"],"stars":3,"len":[30,140],"juv":50,"shape":"ray","col":{"b":"#a0502a","o":"#5a2810","w":"#f0c060","f":"#c8803a","p":"#e0a040"},"desc":"尾巴細長像條鞭子，尾刺還有毒，千萬別踩到。"},
+ {"id":"giant_trevally","name":"浪人鰺","alias":"GT","sci":"Caranx ignobilis","fishdb":"381526","pool":["stream","sea"],"stars":4,"len":[26,119],"juv":42,"shape":"fusi","col":{"b":"#3a8a8a","o":"#1a4a4a","w":"#e8eef0","f":"#e8e0a0","p":"#3a8a8a"},"desc":"大多趁夜出門覓食，螃蟹、龍蝦都在牠的菜單上。"},
+ {"id":"akamutsu","name":"赤鯥","alias":"紅喉","sci":"Doederleinia berycoides","fishdb":"381299","pool":["sea"],"stars":4,"len":[6,28],"juv":10,"shape":"bream","col":{"b":"#e03030","o":"#7a1010","w":"#f08080","f":"#e03030","p":"#1a1a1a"},"desc":"活著時全身赤紅，住在80到200公尺深的大陸棚斜坡。"},
+ {"id":"yellow_goosefish","name":"黃鮟鱇","sci":"Lophius litulon","fishdb":"381160","pool":["sea"],"stars":5,"len":[22,105],"juv":38,"shape":"angler","col":{"b":"#b08a50","o":"#4a3018","w":"#e8dcc0","f":"#1a1a1a","p":"#5a3a20"},"pat":"blotch","desc":"頭上掛著小旗子般的餌球，騙獵物靠近再一口吸掉。"},
+ {"id":"sailfish","name":"雨傘旗魚","sci":"Istiophorus platypterus","fishdb":"382687","pool":["sea"],"stars":4,"len":[52,244],"juv":87,"shape":"sail","col":{"b":"#3a2a50","o":"#1a1028","w":"#e8eef2","f":"#2a3a7a","p":"#111111"},"desc":"第一背鰭比身體還高，撐開像一面帆，游起來超快。"},
+ {"id":"ocean_sunfish","name":"翻車魨","alias":"曼波魚","sci":"Mola mola","fishdb":"382983","pool":["sea"],"stars":4,"len":[50,233],"juv":83,"shape":"sunfish","col":{"b":"#8a8478","o":"#4a443a","w":"#c8ccd0","f":"#8a8478","p":"#d8d8d0"},"pat":"dots","desc":"一次能產下三億顆卵，是魚界產卵數冠軍！"},
+ {"id":"pacific_bluefin","name":"太平洋黑鮪","sci":"Thunnus orientalis","fishdb":"382503","pool":["sea"],"stars":4,"len":[45,210],"juv":75,"shape":"tuna","col":{"b":"#1a2a50","o":"#0a1028","w":"#e8eef2","f":"#f0d040","p":"#c8d0e0"},"pat":"bar","months":[3,4,5,6,7,8],"desc":"春夏洄游到臺灣東方海域產卵，是延繩釣的頭號目標。","alias":"黑鮪"},
+ {"id":"kuda_seahorse","name":"庫達海馬","sci":"Hippocampus kuda","fishdb":"381118","pool":["stream","sea"],"stars":4,"len":[4,21],"juv":8,"shape":"horse","col":{"b":"#e8c040","o":"#8a6a10","w":"#f0d870","f":"#e8c040","p":"#2a2a2a"},"pat":"blotch","desc":"體色超多變，粉紅、黃、綠、褐都有，還常被拿去當中藥。","alias":"海馬"},
+ {"id":"scalloped_hammerhead","name":"路易氏雙髻鯊","sci":"Sphyrna lewini","fishdb":"383088","pool":["stream","sea"],"stars":5,"len":[64,301],"juv":108,"shape":"hammer","col":{"b":"#8a6a4a","o":"#3a2a1a","w":"#f4f4f0","f":"#8a6a4a","p":"#1a1a1a"},"desc":"頭像一把大鎚子；小時候成群結隊，長大卻愛獨行。","protect":1,"alias":"雙髻鯊"},
+ {"id":"giant_grouper","name":"鞍帶石斑魚","alias":"龍膽石斑","sci":"Epinephelus lanceolatus","fishdb":"382543","pool":["stream","sea"],"stars":5,"len":[40,189],"juv":68,"shape":"grouper","col":{"b":"#4a3a2a","o":"#1e160e","w":"#6a5a48","f":"#2e2418","p":"#2e2418"},"desc":"小時候黃底配黑斑，長成大傢伙後變成一身暗褐色。"},
+ {"id":"humphead_wrasse","name":"曲紋唇魚","alias":"蘇眉","sci":"Cheilinus undulatus","fishdb":"381941","pool":["sea"],"stars":5,"len":[34,160],"juv":57,"shape":"bream","col":{"b":"#2a9a8a","o":"#10443c","w":"#5ab8a8","f":"#2a9a8a","p":"#3a1a4a"},"pat":"line","desc":"個性溫和又愛親近人，但牠是保育類，禁止捕捉喔！","protect":1},
+ {"id":"whale_shark","name":"鯨鯊","sci":"Rhincodon typus","fishdb":"383137","pool":["sea"],"stars":5,"len":[300,1400],"juv":500,"shape":"whale","col":{"b":"#4a5a7a","o":"#1e2638","w":"#8a96a8","f":"#4a5a7a","p":"#ffffff"},"pat":"spot","desc":"世界上體型最大的魚，可長到約20公尺，卻只愛吃浮游生物。","protect":1}
 ];
-const PATTERNS=[{id:'plain',w:'',name:'素色'},{id:'spot',w:'斑',name:'斑點'},{id:'bar',w:'紋',name:'條紋'},{id:'line',w:'線',name:'線紋'},{id:'cloud',w:'雲',name:'雲紋'},{id:'star',w:'星',name:'星點'}];
-const PALETTES=[
- {id:'silver',w:'銀',b:'#9CC3D3',o:'#2F4858',wb:'#EAF2F4',f:'#6E99AE',a:'#E8B931'},
- {id:'gold',w:'金',b:'#E8B931',o:'#7A5A12',wb:'#FFF1BF',f:'#D08A1E',a:'#FFF6D5',rare:true},
- {id:'red',w:'紅',b:'#E5533D',o:'#6B1F14',wb:'#FFD6CC',f:'#B83A28',a:'#FFE08A'},
- {id:'blue',w:'藍',b:'#4A7BD0',o:'#1C2F5A',wb:'#D6E4FF',f:'#355EA8',a:'#9FD8FF'},
- {id:'jade',w:'翠',b:'#4FAF7F',o:'#1D4A33',wb:'#DDF5E7',f:'#2F8A5D',a:'#F2E36B'},
- {id:'ink',w:'墨',b:'#3E4552',o:'#151A22',wb:'#A9B1BE',f:'#2A2F38',a:'#7FC8A9'},
- {id:'pink',w:'粉',b:'#F2A7C0',o:'#7A3A52',wb:'#FFF0F5',f:'#D97A9C',a:'#FFFFFF'},
- {id:'orange',w:'橙',b:'#F2A65A',o:'#7A4512',wb:'#FFE9CF',f:'#D9822B',a:'#FFF3B0'},
- {id:'violet',w:'紫',b:'#9B7FD0',o:'#3B2A66',wb:'#EDE6FF',f:'#7A5EB8',a:'#FFD6F0'},
- {id:'moon',w:'月白',b:'#EEF3F7',o:'#5E7385',wb:'#FFFFFF',f:'#C9D6E2',a:'#7FB3D5',rare:true}
-];
-const TRAITS=[{id:'none',w:'',name:'—',wt:5},{id:'fin',w:'長鰭',name:'長鰭',wt:1},{id:'eye',w:'大眼',name:'大眼',wt:1},{id:'fat',w:'胖胖',name:'胖胖',wt:1},{id:'shiny',w:'閃光',name:'閃光',wt:.1,rare:true}];
-const TRAIT_LINE={fin:'鰭特別長，游起來像在跳舞。',eye:'眼睛特別大，什麼都看得到。',fat:'圓滾滾的，吃得很好。',shiny:'在光下會閃，非常少見。'};
 const RODS=[[0,'竹竿'],[5,'碳纖竿'],[15,'溪流竿'],[30,'海釣竿'],[50,'黃金竿'],[80,'傳說竿']];
-const TOTAL_COMBOS=SPECIES.length*PATTERNS.length*PALETTES.length*TRAITS.length;
-const sp=id=>SPECIES.find(s=>s.id===id), pat=id=>PATTERNS.find(p=>p.id===id), pal=id=>PALETTES.find(p=>p.id===id), tr=id=>TRAITS.find(t=>t.id===id);
-const fishName=f=>`${pal(f.pal).w}${pat(f.pat).w}${tr(f.trait).w}${sp(f.sp).name}`;
-const fishKey=f=>`${f.sp}|${f.pat}|${f.pal}|${f.trait}`;
-function fishStars(f){let s=sp(f.sp).stars+(pal(f.pal).rare?1:0)+(f.trait==='shiny'?1:0)+(f.big?1:0);return Math.min(5,s)}
+const FORM_NAME={a:'成魚',j:'幼魚',b:'婚姻色',m:'雄魚',f:'雌魚'};
+const sp=id=>SPECIES.find(s=>s.id===id);
+const formsOf=s=>[...(s.sex?['m','f']:['a']),'j',...(s.breed?['b']:[])];
+const TOTAL_FORMS=SPECIES.reduce((n,s)=>n+formsOf(s).length,0);
+const commonName=s=>s.alias||s.name;
+const fishName=f=>commonName(sp(f.sp))+(f.form==='j'?'（幼魚）':f.form==='b'?'（婚姻色）':f.form==='m'?' ♂':f.form==='f'?' ♀':'');
+const fishKey=f=>`${f.sp}|${f.form||'a'}`;
+function fishStars(f){return Math.min(5,sp(f.sp).stars+(f.form==='b'?1:0)+(f.big?1:0))}
 const STAR_WORD=['','普通','普通','稀有','非常稀有','傳說'];
+const POOL_WORD=s=>s.pool.length>1?'河口':s.pool[0]==='stream'?'溪流':'海邊';
+function monthsText(m){const set=new Set(m),st=m.find(v=>!set.has((v+10)%12+1));if(st===undefined)return '整年';
+  const seq=[st];while(set.has(seq[seq.length-1]%12+1)&&seq.length<m.length)seq.push(seq[seq.length-1]%12+1);
+  return seq.length===m.length&&m.length>1?`${seq[0]}–${seq[seq.length-1]} 月`:m.join('、')+' 月'}
+function fishDesc(f){const s=sp(f.sp);return s.desc+(f.form==='b'&&s.breed?.line?' '+s.breed.line:'')}
 
 function fishGrid(f){
-  let g=sp(f.sp).art.map(r=>r.split(''));
-  if(f.trait==='fat'){const m=Math.floor(g.length/2);g.splice(m,0,[...g[m]])}
-  if(f.trait==='fin'){
-    const W=g[0].length;
-    const top=Array(W).fill('.'),bot=Array(W).fill('.');
-    g[0].forEach((c,x)=>{if(c==='f'||c==='o')top[x]=x%2?'f':'.'});
-    g[g.length-1].forEach((c,x)=>{if(c==='f'||c==='w'||c==='o')bot[x]=x%2?'.':'f'});
-    g=[top,...g,bot];
-  }
-  if(f.trait==='eye'){for(let y=0;y<g.length;y++)for(let x=0;x<g[y].length;x++)if(g[y][x]==='e'){if(g[y][x+1]==='b')g[y][x+1]='E';if(g[y+1]&&g[y+1][x]==='b')g[y+1][x]='E'}}
-  const P=pal(f.pal), r=rng(fishKey(f));
-  const noise=Array.from({length:40},()=>r());
-  return g.map((row,y)=>row.map((c,x)=>{
+  const s=sp(f.sp), g=SHAPES[s.shape]||SHAPES.fusi;
+  const C=Object.assign({o:'#2F4858',b:'#9CC3D3',w:'#EAF2F4',f:'#6E99AE',p:'#2F4858'},s.col,f.form==='b'&&s.breed?.col||{});
+  const P=s.pat||'none';
+  return g.map((row,y)=>[...row].map((c,x)=>{
     switch(c){
-      case 'o':return P.o; case 'w':return P.wb; case 'f':return P.f; case 'm':return P.o;
-      case 'e':case 'E':return '#14223A';
+      case 'o':case 'm':return C.o; case 'w':return C.w; case 'f':return C.f; case 'p':return C.p;
+      case 'e':return '#14223A';
       case 'b':{
-        const p=f.pat; let on=false;
-        if(p==='spot')on=(x*7+y*13)%9===0||(x*5+y*3)%11===0;
-        else if(p==='bar')on=x%4===1;
-        else if(p==='line')on=y%3===1;
-        else if(p==='cloud')on=noise[((x>>1)+(y>>1)*7)%40]<.33;
-        else if(p==='star')on=(x+y*5)%7===3;
-        return on?P.a:P.b}
+        let on=false;
+        if(P==='spot')on=(x*7+y*13)%9===0||(x*5+y*3)%11===0;
+        else if(P==='dots')on=(x+y*3)%5===0;
+        else if(P==='bar')on=x%4===1&&x>2;
+        else if(P==='line')on=y===Math.floor(g.length/2)-1;
+        else if(P==='blotch')on=((x>>1)*3+(y>>1)*5)%4===0;
+        return on?C.p:C.b}
       default:return null}
   }));
 }
+// 幼魚畫小一點
+const cellFor=(f,cell)=>f.form==='j'?Math.max(2,Math.round(cell*.7)):cell;
 function fishCanvas(f,cell=6){
-  const g=fishGrid(f), c=document.createElement('canvas');
-  c.width=g[0].length*cell;c.height=g.length*cell;
+  const g=fishGrid(f), c=document.createElement('canvas'), k=cellFor(f,cell);
+  c.width=g[0].length*k;c.height=g.length*k;
   const x=c.getContext('2d');
-  g.forEach((row,yy)=>row.forEach((col,xx)=>{if(col){x.fillStyle=col;x.fillRect(xx*cell,yy*cell,cell,cell)}}));
-  if(f.trait==='shiny')c.classList.add('shiny');
+  g.forEach((row,yy)=>row.forEach((col,xx)=>{if(col){x.fillStyle=col;x.fillRect(xx*k,yy*k,k,k)}}));
   return c;
 }
 function drawFishOn(ctx,f,cx,cy,cell){
-  const g=fishGrid(f),w=g[0].length*cell,h=g.length*cell,x0=Math.round(cx-w/2),y0=Math.round(cy-h/2);
-  g.forEach((row,yy)=>row.forEach((col,xx)=>{if(col){ctx.fillStyle=col;ctx.fillRect(x0+xx*cell,y0+yy*cell,cell,cell)}}));
+  const g=fishGrid(f),k=cellFor(f,cell),w=g[0].length*k,h=g.length*k,x0=Math.round(cx-w/2),y0=Math.round(cy-h/2);
+  g.forEach((row,yy)=>row.forEach((col,xx)=>{if(col){ctx.fillStyle=col;ctx.fillRect(x0+xx*k,y0+yy*k,k,k)}}));
 }
 
 // ───────── 資料 ─────────
@@ -508,22 +888,42 @@ function catchFish(rec,ch){
   const tier=delta<=1?2:delta<=2?1:.6;          // 越早上鉤越稀有
   const rod=rodOf(allCaught().length);
   const mul=tier*(1+.1*rod.lv);
-  const dow=parseYmd(rec.date).getDay();
+  const dow=parseYmd(rec.date).getDay(), month=parseYmd(rec.date).getMonth()+1;
   let big=false;
   if(dow===0){let hits=0;for(let i=1;i<=6;i++){const r=getDay(ymd(addDays(parseYmd(rec.date),-i)));if(r?.hookAt)hits++}big=hits>=4}
-  const spotDef=S.spots[rec.spot]||S.spots.home, pool=SPECIES.filter(s=>s.pool.includes(spotDef.water||'stream'));
+  // 魚池：釣點的水域＋這個月有出現的魚（季節魚只在牠的月份出現，當季機率稍高）
+  const spotDef=S.spots[rec.spot]||S.spots.home, water=spotDef.water||'stream';
+  const pool=SPECIES.filter(s=>s.pool.includes(water)&&(!s.months||s.months.includes(month)));
   const r=rng(rec.date+ch+rec.hookAt);
-  let s=pickW(pool,x=>x.stars===1?10:x.stars===2?5*mul:x.stars===3?2*mul:.6*mul,r);
-  if(big&&s.stars<3){const rare=pool.filter(x=>x.stars>=3);if(rare.length)s=rare[Math.floor(r()*rare.length)]}
-  const p=PATTERNS[Math.floor(r()*PATTERNS.length)];
-  const pl=pickW(PALETTES,x=>x.rare?.15*mul:1,r);
-  const t=pickW(TRAITS,x=>x.id==='shiny'?x.wt*mul:x.wt,r);
-  const size=(s.len[0]+(s.len[1]-s.len[0])*r())*(tier<1?.7:1)*(big?1.3:1);
-  const f={sp:s.id,pat:p.id,pal:pl.id,trait:t.id,cm:Math.round(size),ch,big,at:Date.now()};
+  const w=x=>(x.stars===1?10:x.stars===2?5*mul:x.stars===3?2*mul:x.stars===4?.6*mul:.25*mul)*(x.months?1.5:1);
+  let s=pickW(pool,w,r);
+  if(big&&s.stars<3){const rare=pool.filter(x=>x.stars>=3);if(rare.length)s=pickW(rare,w,r)}
+  const [lo,hi]=s.len;
+  const cm=Math.max(1,Math.round((lo+(hi-lo)*r())*(tier<1?.7:1)*(big?1.3:1)));
+  let form=s.sex?(r()<.5?'m':'f'):'a';
+  if(cm<s.juv)form='j';
+  else if(s.breed&&(!s.breed.months||s.breed.months.includes(month))&&form!=='f'&&r()<.4)form='b';
+  const f={sp:s.id,form,cm,ch,big,at:Date.now()};
   rec.fish.push(f);
   const dex=store.get('dex')||{}, k=fishKey(f);
   const isNew=!dex[k];dex[k]=dex[k]||{n:0,first:rec.date};dex[k].n++;store.set('dex',dex);
   return {f,isNew};
+}
+// 第一版的組合魚（橙紋黑鯛…）→ 真魚：魚種、體長、日期保留，掛「初代」徽章
+function migrateFish(){
+  if(store.get('fishV')>=2)return;
+  const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('day:'))keys.push(k)}
+  const backup={dex:store.get('dex')};keys.forEach(k=>backup[k]=store.get(k));
+  try{if(!store.get('backup:fishV1'))store.set('backup:fishV1',backup)}catch(e){}
+  const dex={};
+  keys.sort().forEach(k=>{const r=store.get(k);if(!r?.fish?.length)return;
+    r.fish=r.fish.map(f=>{
+      if(f.pat!==undefined||f.pal!==undefined){const s=sp(f.sp);if(!s)return null;
+        f={sp:f.sp,form:f.cm<s.juv?'j':s.sex?'m':'a',cm:f.cm,ch:f.ch,big:f.big,at:f.at,legacy:true}}
+      return f}).filter(Boolean);
+    r.fish.forEach(f=>{const fk=fishKey(f);dex[fk]=dex[fk]||{n:0,first:r.date||k.slice(4)};dex[fk].n++});
+    store.set(k,r)});
+  store.set('dex',dex);store.set('fishV',2);
 }
 
 // ───────── 相機與比對 ─────────
@@ -776,10 +1176,10 @@ function fishCardHTML(f,rec){
   const deco='<i class="bub" style="left:18%"></i><i class="bub" style="left:52%;animation-delay:1.2s"></i><i class="bub" style="left:80%;animation-delay:2.4s"></i>'+(stars>=3?'<i class="spk" style="left:12%;top:20%"></i><i class="spk" style="left:84%;top:26%;animation-delay:.6s"></i><i class="spk" style="left:20%;top:76%;animation-delay:.3s"></i><i class="spk" style="left:76%;top:70%;animation-delay:.9s"></i>':'');
   return `<div class="fcard" style="--gem:${GEM[stars]}"><div class="top"><div class="no">No.${String(no||0).padStart(3,'0')}</div><div class="stars">${'★'.repeat(stars)} ${STAR_WORD[stars]}${f.big?' · 週日大魚':''}</div></div>
   <div class="tank" data-fish='${JSON.stringify(f)}' data-cell="9">${deco}</div>
-  <div class="name">${fishName(f)}</div>
-  <div class="sci">${s.sci}</div>
-  <div class="desc">${s.desc}${TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''}</div>
-  <div class="attrs"><div>魚種<b>${s.name}</b></div><div>花紋<b>${pat(f.pat).name}</b></div><div>特徵<b>${tr(f.trait).name}</b></div><div>體長<b>${f.cm} cm</b></div></div>
+  <div class="name">${fishName(f)}${f.legacy?'<span class="legacy">初代</span>':''}</div>
+  <div class="sci">${s.alias?s.name+' · ':''}<i>${s.sci}</i></div>
+  <div class="desc">${fishDesc(f)}</div>
+  <div class="attrs"><div>魚種<b>${s.name}</b></div><div>型態<b>${FORM_NAME[f.form||'a']}</b></div><div>棲地<b>${POOL_WORD(s)}</b></div><div>體長<b>${f.cm} cm</b></div></div>
   <div class="foot"><div style="font-size:12px;color:#3A4A5E">${md(rec.date)}起床</div><div class="px">${hm(rec.hookAt)}</div></div></div>`;
 }
 function emptyCardHTML(rec,kind){
@@ -901,7 +1301,7 @@ function showCatch({f,isNew},rec){
   closeCamera();playJingle();
   const all=rec.final;
   showOv(`<div class="catch"><div class="big">釣起來了！</div><div class="fishbox" id="fishbox"></div>
-  <div style="font-size:22px;font-weight:700">${fishName(f)}</div><div class="sci">${sp(f.sp).sci}</div><div class="sub">${'★'.repeat(fishStars(f))} ${STAR_WORD[fishStars(f)]} · ${f.cm} cm${isNew?' · 圖鑑新登錄！':''}</div>
+  <div style="font-size:22px;font-weight:700">${fishName(f)}</div><div class="sci">${sp(f.sp).alias?sp(f.sp).name+' · ':''}<i>${sp(f.sp).sci}</i></div><div class="sub">${'★'.repeat(fishStars(f))} ${STAR_WORD[fishStars(f)]} · ${f.cm} cm${isNew?' · 圖鑑新登錄！':''}</div>
   ${!all?'<p class="sub">另一條線還在等你，別回床上喔</p>':''}
   <button class="btn primary" id="catchOk" style="margin-top:10px">${all?'看今天的魚卡':'繼續收線'}</button></div>`);
   const box=$('#fishbox');box.appendChild(fishCanvas(f,9));if(isNew){const st=document.createElement('div');st.className='stamp';st.textContent='NEW';box.appendChild(st)}
@@ -925,15 +1325,16 @@ function drawFishCard(x,f,y0,H,tankH){
   const tx=120,tw=840,ty=y0+40;
   x.fillStyle='#2F7C93';x.fillRect(tx,ty,tw,tankH);x.fillStyle='#1E4E66';x.fillRect(tx,ty+tankH*.2,tw,tankH*.8);pxWave(x,tx,ty+tankH*.2-6,tw,'#8FD3D9');
   x.strokeStyle='#8FD3D9';x.lineWidth=3;[[.2,.85],[.5,.7],[.82,.8]].forEach(([a,b])=>x.strokeRect(tx+tw*a,ty+tankH*b,10,10));
-  const cell=Math.floor(Math.min(28,tankH/12)), by=ty+tankH+70;
+  const by=ty+tankH+70;
   if(f){
+    const g=fishGrid(f), cell=Math.floor(Math.min(28,tankH*.8/g.length,tw*.8/g[0].length)), s=sp(f.sp);
     drawFishOn(x,f,540,ty+tankH*.58,cell);
     if(stars>=3)[[tx+80,ty+tankH*.35],[tx+tw-80,ty+tankH*.4],[tx+140,ty+tankH*.82],[tx+tw-150,ty+tankH*.78]].forEach(([a,b])=>sparkle(x,a,b));
     x.fillStyle='#14223A';x.font='700 58px "Noto Sans TC"';x.fillText(fishName(f),tx,by);
-    x.fillStyle='#7A3A8C';x.font='700 34px "Noto Sans TC"';x.fillText('★'.repeat(stars)+' '+STAR_WORD[stars]+(f.big?' · 週日大魚':''),tx,by+52);
-    x.fillStyle='#5A6A7E';x.font='italic 30px Georgia,"Times New Roman",serif';x.textAlign='right';x.fillText(sp(f.sp).sci,tx+tw,by+50);x.textAlign='left';
-    x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';const yEnd=wrapText(x,sp(f.sp).desc+(TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''),tx,by+104,tw,46);
-    const ay=yEnd+64;[['魚種',sp(f.sp).name],['花紋',pat(f.pat).name],['特徵',tr(f.trait).name],['體長',f.cm+' cm']].forEach(([k,v],i)=>{const ax=tx+i*210;x.fillStyle='#5A6A7E';x.font='26px "Noto Sans TC"';x.fillText(k,ax,ay);x.fillStyle='#14223A';x.font='700 32px "Noto Sans TC"';x.fillText(v,ax,ay+40)});
+    x.fillStyle='#7A3A8C';x.font='700 34px "Noto Sans TC"';x.fillText('★'.repeat(stars)+' '+STAR_WORD[stars]+(f.big?' · 週日大魚':'')+(f.legacy?' · 初代':''),tx,by+52);
+    x.fillStyle='#5A6A7E';x.font='italic 30px Georgia,"Times New Roman",serif';x.textAlign='right';x.fillText(s.sci,tx+tw,by+50);x.textAlign='left';
+    x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';const yEnd=wrapText(x,fishDesc(f),tx,by+104,tw,46);
+    const ay=yEnd+64;[['魚種',s.name],['型態',FORM_NAME[f.form||'a']],['棲地',POOL_WORD(s)],['體長',f.cm+' cm']].forEach(([k,v],i)=>{const ax=tx+i*210;x.fillStyle='#5A6A7E';x.font='26px "Noto Sans TC"';x.fillText(k,ax,ay);x.fillStyle='#14223A';x.font='700 32px "Noto Sans TC"';x.fillText(v,ax,ay+40)});
   }else{
     x.strokeStyle='#9CC3D3';x.lineWidth=8;x.beginPath();x.ellipse(540,ty+tankH*.6,90,22,0,0,7);x.stroke();x.globalAlpha=.4;x.beginPath();x.ellipse(540,ty+tankH*.6,170,44,0,0,7);x.stroke();x.globalAlpha=1;
   }
@@ -1027,36 +1428,43 @@ function sfx(kind){
 const HAB={stream:'<svg class="hab" viewBox="0 0 6 6" shape-rendering="crispEdges" aria-hidden="true"><path fill="#8E9BB0" d="M1 3h3v2H1zM4 2h2v2H4z"/><path fill="#B9C4D6" d="M1 3h1v1H1z"/></svg>',sea:'<svg class="hab" viewBox="0 0 6 6" shape-rendering="crispEdges" aria-hidden="true"><path fill="#4AA3DF" d="M0 3h2v1H0zM2 2h2v1H2zM4 3h2v1H4zM0 5h6v1H0z"/></svg>'};
 function renderDex(open){
   const dex=store.get('dex')||{}, keys=Object.keys(dex), caught=allCaught().length, rod=rodOf(caught);
-  let h=`<section class="hero"><div class="label">圖鑑</div><div class="big" style="font-size:24px">${keys.length} / ${TOTAL_COMBOS.toLocaleString()}</div>
-  <div class="sub">一共釣起 ${caught} 條 · 釣竿：${rod.name}（Lv.${rod.lv+1}）${rod.next?` · 再 ${rod.next-caught} 條升級`:''}</div><div class="dim" style="margin-top:4px">釣竿越好稀有魚越多，但時限永遠不會放寬</div></section>`;
+  const has=id=>keys.some(k=>k.startsWith(id+'|')), nSp=SPECIES.filter(s=>has(s.id)).length;
+  const fit=(f,w)=>{const g=fishGrid(f);return Math.max(2,Math.min(4,Math.floor(w/g[0].length),Math.floor(48/g.length)))};
+  let h=`<section class="hero"><div class="label">圖鑑</div><div class="big" style="font-size:24px">${nSp} / ${SPECIES.length} 種</div>
+  <div class="sub">格子 ${keys.length} / ${TOTAL_FORMS} · 一共釣起 ${caught} 條 · 釣竿：${rod.name}（Lv.${rod.lv+1}）${rod.next?` · 再 ${rod.next-caught} 條升級`:''}</div><div class="dim" style="margin-top:4px">全部是真實的台灣魚。釣竿越好稀有魚越多，但時限永遠不會放寬</div></section>`;
   if(open){
-    const s=sp(open), mine=keys.filter(k=>k.startsWith(open+'|'));
-    h+=`<button class="btn ghost" id="dexBack" style="margin-top:14px">‹ 回到全部魚種</button><h2>${s.name}　${mine.length} / ${TOTAL_COMBOS/SPECIES.length}</h2><p class="sub">${s.desc}</p><p class="dim">點一條魚看牠的介紹</p><div class="dexgrid">`+
-      mine.map(k=>{const[a,b,c,d]=k.split('|'),f={sp:a,pat:b,pal:c,trait:d};return `<button class="v" data-key="${k}"><span data-fish='${JSON.stringify(f)}' data-cell="4"></span>${fishName(f)}<span class="dim">×${dex[k].n}</span></button>`}).join('')+`</div>`;
+    const s=sp(open), fs=formsOf(s);
+    h+=`<button class="btn ghost" id="dexBack" style="margin-top:14px">‹ 回到全部魚種</button><h2>${commonName(s)}　${fs.filter(m=>dex[open+'|'+m]).length} / ${fs.length}</h2>
+    <p class="sci" style="margin:0">${s.alias?s.name+' · ':''}<i>${s.sci}</i></p><p class="sub">${s.desc}</p><p class="dim">點一格看介紹${s.months?` · 只在 ${monthsText(s.months)}出現`:''}</p><div class="dexgrid">`+
+      fs.map(m=>{const k=open+'|'+m,f={sp:open,form:m},got=dex[k];
+        const hint=m==='b'&&s.breed?.months?monthsText(s.breed.months):m==='j'?s.juv+' cm 以下':'';
+        return got?`<button class="v" data-key="${k}"><span data-fish='${JSON.stringify(f)}' data-cell="${fit(f,90)}"></span>${FORM_NAME[m]}<span class="dim">×${got.n}</span></button>`
+          :`<div class="v unknown"><span data-fish='${JSON.stringify(f)}' data-cell="${fit(f,90)}"></span>${FORM_NAME[m]}<span class="dim">${hint||'？'}</span></div>`}).join('')+`</div>`;
   }else{
     h+=`<h2>魚種</h2><div style="display:flex;flex-direction:column;gap:8px">`+SPECIES.map(s=>{
-      const mine=keys.filter(k=>k.startsWith(s.id+'|'));
-      const f=mine.length?(([a,b,c,d])=>({sp:a,pat:b,pal:c,trait:d}))(mine[0].split('|')):{sp:s.id,pat:'plain',pal:'silver',trait:'none'};
-      return `<button class="dexsp" data-sp="${s.id}"><div class="pic ${mine.length?'':'unknown'}"><span data-fish='${JSON.stringify(f)}' data-cell="4"></span></div><div class="info"><b>${mine.length?s.name:'？？？'}</b><span class="dim">${s.pool.map(p=>HAB[p]).join('')}${'★'.repeat(s.stars)} · ${s.pool.map(p=>p==='stream'?'溪流':'海邊').join('／')} · ${mine.length} 種</span><div class="bar"><i style="width:${Math.max(mine.length?3:0,Math.round(mine.length/(TOTAL_COMBOS/SPECIES.length)*100))}%"></i></div></div></button>`}).join('')+`</div>`;
+      const fs=formsOf(s), got=fs.filter(m=>dex[s.id+'|'+m]), f={sp:s.id,form:got[0]||fs[0]};
+      return `<button class="dexsp" data-sp="${s.id}"><div class="pic ${got.length?'':'unknown'}"><span data-fish='${JSON.stringify(f)}' data-cell="${fit(f,80)}"></span></div><div class="info"><b>${got.length?commonName(s):'？？？'}</b><span class="dim">${s.pool.map(p=>HAB[p]).join('')}${'★'.repeat(s.stars)} · ${POOL_WORD(s)}${s.months?' · '+monthsText(s.months):''} · ${got.length}/${fs.length}</span><div class="bar"><i style="width:${Math.round(got.length/fs.length*100)}%"></i></div></div></button>`}).join('')+`</div>`;
   }
   const v=$('#viewDex');v.innerHTML=h;
   v.querySelectorAll('[data-fish]').forEach(el=>el.appendChild(fishCanvas(JSON.parse(el.dataset.fish),+el.dataset.cell)));
-  v.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{if(!keys.some(k=>k.startsWith(b.dataset.sp+'|')))return toast('還沒釣到過');renderDex(b.dataset.sp)});
+  v.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{const s=sp(b.dataset.sp);if(!has(s.id))return toast(s.months?`還沒釣到過，牠 ${monthsText(s.months)}才會出現`:'還沒釣到過');renderDex(s.id)});
   $('#dexBack')?.addEventListener('click',()=>renderDex());
   v.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{sfx('tap');showFish(b.dataset.key,dex[b.dataset.key])});
 }
-// 圖鑑裡點一條魚：跟釣起時一樣的介紹＋紀錄
+// 圖鑑裡點一格：跟釣起時一樣的介紹＋紀錄
 function showFish(k,info){
-  const[a,b,c,d]=k.split('|'),f={sp:a,pat:b,pal:c,trait:d}, stars=fishStars(f);
-  const mine=allCaught().filter(x=>fishKey(x)===k), maxCm=mine.length?Math.max(...mine.map(x=>x.cm||0)):0;
+  const[a,m]=k.split('|'),f={sp:a,form:m},s=sp(a),stars=fishStars(f);
+  const mine=allCaught().filter(x=>fishKey(x)===k), maxCm=mine.length?Math.max(...mine.map(x=>x.cm||0)):0, legacy=mine.some(x=>x.legacy);
   const md=info.first?info.first.slice(5).replace('-','/'):'—';
-  const rows=[['魚種',sp(f.sp).name],['花紋',pat(f.pat).name],['特徵',tr(f.trait).name],['最大',maxCm?maxCm+' cm':'—'],['第一次',md],['釣到',info.n+' 次']];
-  showOv(`<div class="ovhead"><b>${fishName(f)}</b><button class="x" id="fdX" aria-label="關閉">×</button></div>
+  const rows=[['魚種',s.name],['型態',FORM_NAME[m]],['棲地',POOL_WORD(s)],['最大',maxCm?maxCm+' cm':'—'],['第一次',md],['釣到',info.n+' 次']];
+  showOv(`<div class="ovhead"><b>${fishName(f)}${legacy?'<span class="legacy">初代</span>':''}</b><button class="x" id="fdX" aria-label="關閉">×</button></div>
   <div class="catch" style="flex:none;justify-content:flex-start;margin-top:8px"><div class="fishbox" id="fdBox"></div>
-  <div class="sub">${'★'.repeat(stars)} ${STAR_WORD[stars]}</div><div class="sci">${sp(f.sp).sci}</div>
-  <p style="line-height:1.7;margin:10px 0 14px">${sp(f.sp).desc}${TRAIT_LINE[f.trait]?' '+TRAIT_LINE[f.trait]:''}</p>
-  <div class="fdgrid">${rows.map(([k,v])=>`<div><span class="dim">${k}</span><b>${v}</b></div>`).join('')}</div></div>`);
-  $('#fdBox').appendChild(fishCanvas(f,9));$('#fdX').onclick=hideOv;
+  <div class="sub">${'★'.repeat(stars)} ${STAR_WORD[stars]}</div><div class="sci">${s.alias?s.name+' · ':''}<i>${s.sci}</i></div>
+  <p style="line-height:1.7;margin:10px 0 14px">${fishDesc(f)}</p>
+  <div class="fdgrid">${rows.map(([k,v])=>`<div><span class="dim">${k}</span><b>${v}</b></div>`).join('')}</div>
+  ${s.protect?'<p class="dim" style="margin-top:12px">現實中是保育類，禁止捕撈；在晨釣裡只是相遇一下。</p>':''}
+  <p class="dim" style="margin-top:6px">資料：臺灣魚類資料庫（中研院）</p></div>`);
+  $('#fdBox').appendChild(fishCanvas(f,Math.min(9,Math.floor(300/fishGrid(f)[0].length))));$('#fdX').onclick=hideOv;
 }
 
 // ───────── 設定 ─────────
@@ -1191,6 +1599,7 @@ async function checkUpdate(){
 $('#updateBtn').onclick=()=>{location.href=location.pathname+'?v='+(latest||Date.now())};
 document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.visibilityState==='visible'){setPhase();checkUpdate();if(!$('#viewToday').hidden&&$('#ov').hidden)renderToday();else playBgm(wantBgm)}else{closeCamera();stopBgm()}});
 
+try{migrateFish()}catch(e){console.error(e)}
 if(!S){S={mode:'daily',targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'stream',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
 else showTab('Today');
 syncMusBtn();setSession();
