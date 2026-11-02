@@ -38,6 +38,8 @@ input,select{font:inherit}
 .wrap{max-width:460px;margin:0 auto;padding:0 18px}
 header.top{display:flex;justify-content:space-between;align-items:center;padding:8px 0 14px;min-height:56px}
 .logo{font-family:var(--px);font-size:13px;color:var(--accent);letter-spacing:1px}
+.dtag{flex:none;width:auto;white-space:nowrap;min-height:34px}
+.dtag.on{color:var(--text);border-color:var(--accent);background:var(--panel2)}
 .chip{font-size:13px;color:var(--sub);background:var(--panel);border:2px solid var(--line);padding:4px 10px}
 .px{font-family:var(--px)}
 .sub{color:var(--sub);font-size:13px}
@@ -323,7 +325,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.11.02-0040';
+const APP_VERSION='2026.11.03-0009';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -1010,12 +1012,18 @@ function renderToday(){
   else if(now>T+HOOK_LATE*MIN) h+=missedBlock(d,target)+tomorrowBlock(d);
   else h+=beforeBlock(d,target);
   const busy=rec?.hookAt&&!rec.final || (!rec?.final&&now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN);
-  if(!busy)h=readyBlock(d)+backupBlock(d)+sleepBlock(now)+h;
+  if(!busy)h=readyBlock(d)+backupBlock(d)+sleepBlock(now)+diaryBlock(now)+h;
   h+=weekBlock(d)+trendBlock(d);
   v.innerHTML=h;
   v.querySelector('#sleepBtn')?.addEventListener('click',()=>{saveSleep(Date.now());sfx('tap');toast('晚安，記下來了');renderToday()});
   v.querySelector('#sleepT')?.addEventListener('change',e=>{const md0=sleepDay(Date.now()),r=getDay(md0);if(!r||!e.target.value)return;
     const [hh,mm]=e.target.value.split(':').map(Number),base=parseYmd(md0);if(hh>=12)base.setDate(base.getDate()-1);base.setHours(hh,mm,0,0);r.sleepAt=base.getTime();putDay(md0,r);toast('入睡時間改成 '+e.target.value);renderToday()});
+  const dd=v.querySelector('#diary');
+  if(dd){const d0=dd.dataset.day,ta=dd.querySelector('textarea');let tm;
+    const put=()=>{let r=getDay(d0);if(!r)r=Object.assign(newDay(d0),{date:d0});r.sleepNote=ta.value.trim();r.sleepTags=[...dd.querySelectorAll('[data-tag].on')].map(b=>b.dataset.tag);if(!r.sleepNote)delete r.sleepNote;if(!r.sleepTags.length)delete r.sleepTags;putDay(d0,r)};
+    ta.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(put,600)});
+    ta.addEventListener('change',()=>{clearTimeout(tm);put();toast('睡眠日記存好了')});
+    dd.querySelectorAll('[data-tag]').forEach(b=>b.onclick=()=>{sfx('tap');b.classList.toggle('on');put()})}
   v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData();else if(g==='safari'){S.safariOk=true;save();renderToday();toast('好，之後都從 Safari 玩')}});
   // 放上像素魚
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
@@ -1053,6 +1061,21 @@ function saveSleep(ts){
   const md0=sleepDay(ts);let r=getDay(md0);if(!r)r=Object.assign(newDay(md0),{date:md0});
   r.sleepAt=ts;putDay(md0,r);
 }
+// 📝 睡眠日記：記昨晚睡得怎樣＋心得，存在「今天早上」那天（凌晨 6 點前算前一天）
+const DIARY_TAGS=['睡得好','睡不飽','有作夢','半夜醒來','很難睡著','太晚放下手機'];
+function diaryDay(now){const t=new Date(now);return t.getHours()<6?ymd(addDays(t,-1)):ymd(t)}
+function diaryBlock(now){
+  const d0=diaryDay(now), r=getDay(d0), tags=r?.sleepTags||[];
+  return `<div class="card" id="diary" data-day="${d0}" style="margin-top:12px"><div class="t" style="font-size:14px">📝 睡眠日記 <span class="dim">${md(d0)}早上・昨晚睡得怎樣</span></div>
+  <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${DIARY_TAGS.map(t=>`<button class="chip dtag ${tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
+  <textarea rows="3" placeholder="例：夢到考試、7 點半就醒了、洗完澡才清醒…（打完自動存）" style="width:100%;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line2);color:var(--text);font-size:15px;padding:8px;font-family:inherit;resize:vertical">${esc(r?.sleepNote||'')}</textarea></div>`;
+}
+function diaryList(days){
+  const it=days.map(day=>{const r=getDay(day);return r&&(r.sleepNote||r.sleepTags?.length)?{day,r}:null}).filter(Boolean).reverse().slice(0,7);
+  if(!it.length)return '';
+  return `<h2>睡眠日記 <span class="dim">最近 ${it.length} 則</span></h2><div style="display:flex;flex-direction:column;gap:8px">${it.map(({day,r})=>{const w=r.hookAt||r.wakeAt,dur=r.sleepAt&&w>r.sleepAt?(w-r.sleepAt)/MIN:0;
+    return `<div class="card"><div class="dim">${md(day)}${r.sleepAt?` ・ ${hm(r.sleepAt)} 睡`:''}${w?` → ${hm(w)} 起`:''}${dur?` ・ ${Math.floor(dur/60)}h${pad(Math.round(dur%60))}`:''}</div>${r.sleepTags?.length?`<div style="margin-top:4px">${r.sleepTags.map(t=>`<span class="chip">${esc(t)}</span>`).join(' ')}</div>`:''}${r.sleepNote?`<div style="margin-top:6px;line-height:1.7;white-space:pre-wrap">${esc(r.sleepNote)}</div>`:''}</div>`}).join('')}</div>`;
+}
 function daysBetween(a,b){return Math.round((parseYmd(b)-parseYmd(a))/864e5)}
 function backupBlock(d){
   const since=S.lastBackup?daysBetween(S.lastBackup,d):daysBetween(S.created||d,d);
@@ -1089,7 +1112,7 @@ function sleepChartSVG(days){
 function trendBlock(d){
   const days=[...Array(28)].map((_,i)=>ymd(addDays(parseYmd(d),i-27)));
   const pts=days.map((day,i)=>{const r=getDay(day),t=r?.hookAt||r?.wakeAt;if(!t)return null;const x=new Date(t);return {i,m:x.getHours()*60+x.getMinutes(),hit:!!r.hookAt,tg:(r.target||targetFor(day)).split(':').reduce((a,b)=>a*60+ +b)}}).filter(Boolean);
-  if(pts.length<2)return `<h2>起床時間趨勢</h2><div class="card dim">記錄兩天以上就會出現：平均幾點起床、每天差多少。</div>`+sleepChartSVG(days.slice(-14));
+  if(pts.length<2)return `<h2>起床時間趨勢</h2><div class="card dim">記錄兩天以上就會出現：平均幾點起床、每天差多少。</div>`+sleepChartSVG(days.slice(-14))+diaryList(days);
   const ms=pts.map(p=>p.m), avg=ms.reduce((a,b)=>a+b,0)/ms.length, sd=Math.sqrt(ms.reduce((a,b)=>a+(b-avg)**2,0)/ms.length);
   const lo=Math.min(...ms,...pts.map(p=>p.tg))-20, hi=Math.max(...ms,...pts.map(p=>p.tg))+20;
   const W=336,H=140,X=i=>8+i*(W-16)/27,Y=m=>8+(m-lo)/(hi-lo)*(H-16);
@@ -1107,7 +1130,7 @@ function trendBlock(d){
   return `<h2>起床時間趨勢 <span class="dim">最近 28 天</span></h2>
   <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card"><div class="dim">平均起床</div><div class="px" style="font-size:15px;margin-top:6px">${fmt(avg)}</div></div><div class="card"><div class="dim">每天差多少</div><div class="px" style="font-size:15px;margin-top:6px">±${Math.round(sd)}分</div></div><div class="card"><div class="dim">準時</div><div class="px" style="font-size:15px;margin-top:6px">${hits}/${pts.length}</div></div></div>${sleepRow}${sleepChart}
   <div class="card" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="最近 28 天起床時間" shape-rendering="crispEdges"><text x="8" y="12" fill="#8E9BB0" font-size="9">${fmt(lo+20)}</text><text x="8" y="${H-4}" fill="#8E9BB0" font-size="9">${fmt(hi-20)}</text>${tgLine}<path d="${path}" fill="none" stroke="#4A6690" stroke-width="2" shape-rendering="auto"/>${dots}</svg>
-  <div class="dim">越往上越早起・橘點＝準時上鉤、紅點＝晚了・灰線＝當天目標。穩定度：<b style="color:var(--text)">${word}</b>（研究上「每天一樣」比「多早」重要）</div></div>`;
+  <div class="dim">越往上越早起・橘點＝準時上鉤、紅點＝晚了・灰線＝當天目標。穩定度：<b style="color:var(--text)">${word}</b>（研究上「每天一樣」比「多早」重要）</div></div>`+diaryList(days);
 }
 function baitPicker(forWhat,bait){
   const opt=c=>`<button class="bait ${bait.includes(c)?'on':''}" data-bait="${c}" data-for="${forWhat}"><b>${CHAINS[c].name}</b><span>${CHAINS[c].short}</span></button>`;
