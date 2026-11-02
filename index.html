@@ -39,6 +39,16 @@ input,select{font:inherit}
 header.top{display:flex;justify-content:space-between;align-items:center;padding:8px 0 14px;min-height:56px}
 .logo{font-family:var(--px);font-size:13px;color:var(--accent);letter-spacing:1px}
 .dtag{flex:none;width:auto;white-space:nowrap;min-height:34px}
+.diary{margin-top:12px}
+.diary summary{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;cursor:pointer;list-style:none;min-height:28px}
+.diary summary::-webkit-details-marker{display:none}
+.diary summary::after{content:'▾';color:var(--sub)}
+.diary[open] summary::after{content:'▴'}
+.diary summary>span:first-child{flex:1}
+.dscore{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:6px}
+.dscore .dtag{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;background:var(--panel);border:2px solid var(--line);color:var(--sub);font-size:11px;min-height:52px}
+.dscore .dtag b{font-size:16px;color:var(--text)}
+.diary textarea{width:100%;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line2);color:var(--text);font-size:15px;padding:8px;font-family:inherit;resize:none;overflow:hidden;min-height:84px}
 .dtag.on{color:var(--text);border-color:var(--accent);background:var(--panel2)}
 .chip{font-size:13px;color:var(--sub);background:var(--panel);border:2px solid var(--line);padding:4px 10px}
 .px{font-family:var(--px)}
@@ -325,7 +335,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.11.03-0009';
+const APP_VERSION='2026.11.03-0023';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -1012,18 +1022,25 @@ function renderToday(){
   else if(now>T+HOOK_LATE*MIN) h+=missedBlock(d,target)+tomorrowBlock(d);
   else h+=beforeBlock(d,target);
   const busy=rec?.hookAt&&!rec.final || (!rec?.final&&now>=T-HOOK_EARLY*MIN&&now<=T+HOOK_LATE*MIN);
-  if(!busy)h=readyBlock(d)+backupBlock(d)+sleepBlock(now)+diaryBlock(now)+h;
+  if(!busy)h=readyBlock(d)+backupBlock(d)+sleepBlock(now)+h+diaryBlock(now);
   h+=weekBlock(d)+trendBlock(d);
   v.innerHTML=h;
   v.querySelector('#sleepBtn')?.addEventListener('click',()=>{saveSleep(Date.now());sfx('tap');toast('晚安，記下來了');renderToday()});
   v.querySelector('#sleepT')?.addEventListener('change',e=>{const md0=sleepDay(Date.now()),r=getDay(md0);if(!r||!e.target.value)return;
     const [hh,mm]=e.target.value.split(':').map(Number),base=parseYmd(md0);if(hh>=12)base.setDate(base.getDate()-1);base.setHours(hh,mm,0,0);r.sleepAt=base.getTime();putDay(md0,r);toast('入睡時間改成 '+e.target.value);renderToday()});
   const dd=v.querySelector('#diary');
-  if(dd){const d0=dd.dataset.day,ta=dd.querySelector('textarea');let tm;
-    const put=()=>{let r=getDay(d0);if(!r)r=Object.assign(newDay(d0),{date:d0});r.sleepNote=ta.value.trim();r.sleepTags=[...dd.querySelectorAll('[data-tag].on')].map(b=>b.dataset.tag);if(!r.sleepNote)delete r.sleepNote;if(!r.sleepTags.length)delete r.sleepTags;putDay(d0,r)};
-    ta.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(put,600)});
-    ta.addEventListener('change',()=>{clearTimeout(tm);put();toast('睡眠日記存好了')});
-    dd.querySelectorAll('[data-tag]').forEach(b=>b.onclick=()=>{sfx('tap');b.classList.toggle('on');put()})}
+  if(dd){const d0=dd.dataset.day,ta=dd.querySelector('textarea'),ok=dd.querySelector('#dsaved');let tm;
+    const grow=()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+4+'px'};
+    const put=()=>{let r=getDay(d0);if(!r)r=Object.assign(newDay(d0),{date:d0});
+      r.sleepNote=ta.value.trim();r.sleepTags=[...dd.querySelectorAll('[data-tag].on')].map(b=>b.dataset.tag);
+      const sc=dd.querySelector('[data-score].on');if(sc)r.sleepScore=+sc.dataset.score;else delete r.sleepScore;
+      if(!r.sleepNote)delete r.sleepNote;if(!r.sleepTags.length)delete r.sleepTags;r.noteAt=Date.now();putDay(d0,r);
+      ok.textContent='✓ 已存 '+hm(r.noteAt);dd.querySelector('.dstate').textContent=diaryDone(r)?'✓ 寫好了':'還沒寫'};
+    dd.addEventListener('toggle',()=>{if(dd.open)grow()});grow();
+    ta.addEventListener('input',()=>{grow();clearTimeout(tm);tm=setTimeout(put,600)});
+    ta.addEventListener('change',()=>{clearTimeout(tm);put()});
+    dd.querySelectorAll('[data-tag]').forEach(b=>b.onclick=()=>{sfx('tap');b.classList.toggle('on');put()});
+    dd.querySelectorAll('[data-score]').forEach(b=>b.onclick=()=>{sfx('tap');const on=b.classList.contains('on');dd.querySelectorAll('[data-score]').forEach(x=>x.classList.remove('on'));if(!on)b.classList.add('on');put()})}
   v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData();else if(g==='safari'){S.safariOk=true;save();renderToday();toast('好，之後都從 Safari 玩')}});
   // 放上像素魚
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
@@ -1061,20 +1078,28 @@ function saveSleep(ts){
   const md0=sleepDay(ts);let r=getDay(md0);if(!r)r=Object.assign(newDay(md0),{date:md0});
   r.sleepAt=ts;putDay(md0,r);
 }
-// 📝 睡眠日記：記昨晚睡得怎樣＋心得，存在「今天早上」那天（凌晨 6 點前算前一天）
-const DIARY_TAGS=['睡得好','睡不飽','有作夢','半夜醒來','很難睡著','太晚放下手機'];
+// 📝 睡眠日記：記今早起床的精神＋發生什麼事＋心得，存在「今天早上」那天（凌晨 6 點前算前一天）
+// 白天還沒寫＝展開；寫過或晚上＝收成一行，點開才編輯
+const DIARY_TAGS=['有作夢','半夜醒來','很難睡著','太晚放下手機','賴床'];
+const SCORE_WORD=['','累爆','很累','普通','還不錯','精神飽滿'];
+const diaryDone=r=>!!(r&&(r.sleepNote||r.sleepTags?.length||r.sleepScore));
 function diaryDay(now){const t=new Date(now);return t.getHours()<6?ymd(addDays(t,-1)):ymd(t)}
 function diaryBlock(now){
-  const d0=diaryDay(now), r=getDay(d0), tags=r?.sleepTags||[];
-  return `<div class="card" id="diary" data-day="${d0}" style="margin-top:12px"><div class="t" style="font-size:14px">📝 睡眠日記 <span class="dim">${md(d0)}早上・昨晚睡得怎樣</span></div>
-  <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${DIARY_TAGS.map(t=>`<button class="chip dtag ${tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
-  <textarea rows="3" placeholder="例：夢到考試、7 點半就醒了、洗完澡才清醒…（打完自動存）" style="width:100%;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line2);color:var(--text);font-size:15px;padding:8px;font-family:inherit;resize:vertical">${esc(r?.sleepNote||'')}</textarea></div>`;
+  const d0=diaryDay(now), r=getDay(d0), tags=r?.sleepTags||[], h=new Date(now).getHours(), done=diaryDone(r);
+  const open=!done&&h>=6&&h<18;
+  return `<details class="card diary" id="diary" data-day="${d0}" ${open?'open':''}><summary><span>📝 睡眠日記 <span class="dim">今早・${md(d0)}</span></span><span class="dstate dim">${done?'✓ 寫好了':'還沒寫'}</span></summary>
+  <div class="dim" style="margin-top:10px">起床時的精神</div>
+  <div class="dscore">${[1,2,3,4,5].map(n=>`<button class="dtag ${r?.sleepScore===n?'on':''}" data-score="${n}"><b>${n}</b><span>${SCORE_WORD[n]}</span></button>`).join('')}</div>
+  <div class="dim" style="margin-top:10px">發生了什麼</div>
+  <div class="row" style="flex-wrap:wrap;gap:6px;margin:6px 0 10px">${DIARY_TAGS.map(t=>`<button class="chip dtag ${tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
+  <textarea rows="3" placeholder="心得：夢到什麼、幾點醒、洗完澡才清醒…（打完自動存）">${esc(r?.sleepNote||'')}</textarea>
+  <div class="dim" id="dsaved" style="text-align:right;margin-top:4px">${r?.noteAt?'✓ 已存 '+hm(r.noteAt):''}</div></details>`;
 }
 function diaryList(days){
-  const it=days.map(day=>{const r=getDay(day);return r&&(r.sleepNote||r.sleepTags?.length)?{day,r}:null}).filter(Boolean).reverse().slice(0,7);
+  const it=days.map(day=>{const r=getDay(day);return diaryDone(r)?{day,r}:null}).filter(Boolean).reverse().slice(0,7);
   if(!it.length)return '';
   return `<h2>睡眠日記 <span class="dim">最近 ${it.length} 則</span></h2><div style="display:flex;flex-direction:column;gap:8px">${it.map(({day,r})=>{const w=r.hookAt||r.wakeAt,dur=r.sleepAt&&w>r.sleepAt?(w-r.sleepAt)/MIN:0;
-    return `<div class="card"><div class="dim">${md(day)}${r.sleepAt?` ・ ${hm(r.sleepAt)} 睡`:''}${w?` → ${hm(w)} 起`:''}${dur?` ・ ${Math.floor(dur/60)}h${pad(Math.round(dur%60))}`:''}</div>${r.sleepTags?.length?`<div style="margin-top:4px">${r.sleepTags.map(t=>`<span class="chip">${esc(t)}</span>`).join(' ')}</div>`:''}${r.sleepNote?`<div style="margin-top:6px;line-height:1.7;white-space:pre-wrap">${esc(r.sleepNote)}</div>`:''}</div>`}).join('')}</div>`;
+    return `<div class="card"><div class="dim">${md(day)}${r.sleepAt?` ・ ${hm(r.sleepAt)} 睡`:''}${w?` → ${hm(w)} 起`:''}${dur?` ・ ${Math.floor(dur/60)}h${pad(Math.round(dur%60))}`:''}</div>${r.sleepScore?`<div style="margin-top:4px">精神 <b>${r.sleepScore}</b>/5 ${SCORE_WORD[r.sleepScore]}</div>`:''}${r.sleepTags?.length?`<div style="margin-top:4px">${r.sleepTags.map(t=>`<span class="chip">${esc(t)}</span>`).join(' ')}</div>`:''}${r.sleepNote?`<div style="margin-top:6px;line-height:1.7;white-space:pre-wrap">${esc(r.sleepNote)}</div>`:''}</div>`}).join('')}</div>`;
 }
 function daysBetween(a,b){return Math.round((parseYmd(b)-parseYmd(a))/864e5)}
 function backupBlock(d){
