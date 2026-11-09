@@ -307,6 +307,81 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 .mus{width:40px;height:34px;background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px)}
 .mus svg{width:18px;height:18px}
 .mus.off{opacity:.5}
+
+/* 夜間：收拾釣具（鼠尾草綠桌面＋炭灰工具箱，配色獨立於主畫面） */
+.nt{--tb:#a9ba88;--tb2:#9cae7b;--nk:#2f3640;--nc:#f1ece2;--nc2:#e2dccf;--np:#d6557a;--nm:#eec65b;--ns:#a9b1b8;--nsub:#4f5a46;
+  background:var(--tb);color:var(--nk);margin:6px -18px 0;padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px;-webkit-user-select:none;user-select:none;
+  background-image:linear-gradient(var(--tb2) 2px,transparent 2px),linear-gradient(90deg,var(--tb2) 2px,transparent 2px);background-size:24px 24px}
+.nthead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.nthead b{font-size:20px}
+.ntplan{font-size:12px;color:var(--nsub)}
+.ntclock{font-family:var(--px);font-size:13px;background:var(--nk);color:var(--nm);padding:6px 8px}
+.ntband{display:flex;flex-wrap:wrap;justify-content:space-around;align-items:flex-end;gap:6px 8px;min-height:80px}
+.ntband.foot{min-height:0;justify-content:space-between}
+.ntloose{display:flex;flex-direction:column;align-items:center;gap:4px;touch-action:none;cursor:grab;padding:2px}
+.ntloose canvas,.ntdeco canvas,.ntcell canvas,.ntghost canvas{image-rendering:pixelated;display:block}
+.ntloose canvas{filter:drop-shadow(3px 3px 0 rgba(47,54,64,.35))}
+.ntloose .tag{font-size:11px;line-height:1.2;background:var(--nc);color:var(--nk);padding:2px 6px;box-shadow:0 0 0 2px var(--nk);white-space:nowrap;font-weight:700}
+.ntloose.sel .tag{background:var(--np);color:#fff}
+.ntloose.gone{visibility:hidden}
+.ntloose.lift{opacity:.25}
+.ntdeco{pointer-events:none;align-self:center;opacity:.4}
+.ntstage{position:relative;display:flex;justify-content:center}
+.ntbox{display:flex;align-items:stretch;padding:6px;gap:6px;box-shadow:6px 6px 0 rgba(47,54,64,.35);cursor:pointer}
+.ntcol{display:flex;flex-direction:column;gap:6px;position:relative}
+.ntcol.L,.ntcol.R{width:104px;overflow:hidden;transition:width .45s steps(5),padding .45s steps(5)}
+.ntcol.C{width:72px}
+.ntcol.R{background:#f7f3ec;padding:4px;gap:2px}
+.ntcell{position:relative;flex:1;display:grid;place-items:center;background:var(--nc);box-shadow:inset 3px 3px 0 var(--nc2);min-height:60px}
+.ntcell.tall{flex:3;min-height:160px}
+.ntcol.R .ntcell{background:transparent;box-shadow:none}
+.ntcell.hot{background:#f6d6de;box-shadow:inset 0 0 0 3px var(--np)}
+.ntcell.full{cursor:pointer}
+.ntcell.snap canvas{animation:ntsnap .3s steps(3)}
+.ntcell.nope,.ntbox.nope{animation:ntnope .3s steps(4)}
+@keyframes ntsnap{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+@keyframes ntnope{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.ntlid{position:absolute;inset:0;background:var(--np);box-shadow:inset 4px 4px 0 #e8829f,inset -4px -4px 0 #b23a62;display:grid;place-items:center;z-index:2}
+.ntlid i{width:22px;height:14px;background:var(--nk);box-shadow:inset 0 0 0 3px var(--ns)}
+.ntstage:not(.opened) .ntcol.L,.ntstage:not(.opened) .ntcol.R{width:0;padding:0}
+.ntstage:not(.opened) .ntbox{gap:0}
+.ntstage.opened .ntlid{display:none}
+.ntstage.closed .ntlid i{background:var(--nm)}
+.ntstage.anim .ntcol.L,.ntstage.anim .ntcol.R{animation:ntfold .45s steps(5)}
+@keyframes ntfold{0%{width:104px;padding:4px}100%{width:0;padding:0}}
+.nthint{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);font-size:12px;background:var(--nk);color:var(--nc);padding:2px 10px;white-space:nowrap;pointer-events:none;z-index:3}
+.ntdone{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;display:grid;justify-items:center;gap:4px;width:max-content;max-width:100%;pointer-events:none}
+.ntdone b{font-size:15px;background:var(--nk);color:var(--nc);padding:4px 12px}
+.ntdone span{font-size:12px;background:var(--nm);color:var(--nk);padding:2px 10px;font-weight:700}
+.ntstage.anim .ntdone{animation:ntin .3s .6s both}
+@keyframes ntin{from{opacity:0}to{opacity:1}}
+.nttip{font-size:13px;margin:0;text-align:center}
+.nttip b{color:var(--np)}
+.ntghost{position:fixed;z-index:200;pointer-events:none;transform:translate(-50%,-50%) scale(1.1);filter:drop-shadow(4px 6px 0 rgba(47,54,64,.4))}
+.ntd{background:var(--nc);box-shadow:0 0 0 3px var(--nk),4px 4px 0 3px rgba(47,54,64,.3);margin:0 3px}
+.ntd summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;font-size:13px}
+.ntd summary::-webkit-details-marker{display:none}
+.ntd summary::after{content:"▾"}
+.ntd[open] summary::after{content:"▴"}
+.ntd .k{font-weight:700}
+.ntd .v{flex:1;text-align:right}
+.ntin{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
+.ntdots{display:inline-flex;gap:4px;vertical-align:middle}
+.ntdots i{width:12px;height:12px;display:inline-block;box-shadow:inset 0 0 0 2px var(--nk)}
+.ntdots .g{background:var(--nm)}.ntdots .s{background:var(--ns)}
+.nttiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.nttiers div{border:2px solid var(--nk);padding:6px 2px;text-align:center;font-size:11px;color:var(--nsub);background:#fff}
+.nttiers div.now{background:var(--nm)}
+.nttiers i{display:block;height:10px;margin:0 auto 4px;width:70%;box-shadow:0 0 0 2px var(--nk)}
+.nttiers b{display:block;font-size:13px;color:var(--nk)}
+.ntbar{height:10px;background:#fff;box-shadow:inset 0 0 0 2px var(--nk)}
+.ntbar i{display:block;height:100%;background:var(--np)}
+.ntrow{display:grid;grid-template-columns:4.6em 1fr 1fr 3.2em;gap:6px;align-items:center;font-size:13px;padding:4px 0;border-bottom:2px dotted var(--nc2)}
+.ntrow .dd{color:var(--nsub)}
+.ntrow .rod{text-align:center;font-size:11px;font-weight:700;box-shadow:0 0 0 2px var(--nk)}
+.ntrow .rod.g{background:var(--nm)}.ntrow .rod.s{background:var(--ns)}
+.ntnote{font-size:12px;color:var(--nsub);margin:0}
+.gold{display:inline-block;margin-left:6px;font-size:11px;padding:1px 6px;background:#EEC65B;color:#2f3640;vertical-align:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}body::after{display:none}}
 </style>
 </head>
@@ -318,12 +393,14 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
   </header>
 
   <main id="viewToday"></main>
+  <main id="viewNight" hidden></main>
   <main id="viewDex" hidden></main>
   <main id="viewSet" hidden></main>
 </div>
 
 <nav class="tabs">
   <button data-tab="Today" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 15c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M3 20c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M12 3v7"/><circle cx="12" cy="11" r="1.5"/></svg>今天</button>
+  <button data-tab="Night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9h16v10H4z"/><path d="M9 9V6h6v3"/><path d="M4 13h16"/><path d="M11 13v2h2v-2"/></svg>夜間</button>
   <button data-tab="Dex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9c2-2 5-2 7 0-2 2-5 2-7 0z"/></svg>圖鑑</button>
   <button data-tab="Set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>設定</button>
 </nav>
@@ -1041,7 +1118,7 @@ function renderToday(){
     ta.addEventListener('change',()=>{clearTimeout(tm);put()});
     dd.querySelectorAll('[data-tag]').forEach(b=>b.onclick=()=>{sfx('tap');b.classList.toggle('on');put()});
     dd.querySelectorAll('[data-score]').forEach(b=>b.onclick=()=>{sfx('tap');const on=b.classList.contains('on');dd.querySelectorAll('[data-score]').forEach(x=>x.classList.remove('on'));if(!on)b.classList.add('on');put()})}
-  v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData();else if(g==='safari'){S.safariOk=true;save();renderToday();toast('好，之後都從 Safari 玩')}});
+  v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='set')showTab('Set');else if(g==='night')showTab('Night');else if(g==='home')showHomeHelp();else if(g==='alarm'){S.alarmOk=true;save();renderToday();toast('好，明天鬧鐘響了就打開晨釣')}else if(g==='backup')exportData();else if(g==='safari'){S.safariOk=true;save();renderToday();toast('好，之後都從 Safari 玩')}});
   // 放上像素魚
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
   v.querySelectorAll('[data-bait]').forEach(b=>b.onclick=()=>toggleBait(b.dataset.bait,b.dataset.for));
@@ -1070,9 +1147,11 @@ function readyBlock(d){
 function sleepDay(now){const t=new Date(now);return t.getHours()<12?ymd(t):ymd(addDays(t,1))}
 function sleepBlock(now){
   const h=new Date(now).getHours(), md0=sleepDay(now), r=getDay(md0);
+  if(r?.night?.doneAt)return `<div class="tplrow" style="margin-top:12px"><div class="t">🧰 收工 <b class="px" style="font-size:12px">${hm(r.night.doneAt)}</b>${r.night.gold?'<span class="gold">金竿</span>':''}<div class="dim">推估 ${hm(r.sleepAt)} 入睡（收工＋20 分鐘看書）</div></div></div>`;
   if(r?.sleepAt)return `<div class="tplrow" style="margin-top:12px"><div class="t">🌙 已記錄入睡 <b class="px" style="font-size:12px">${hm(r.sleepAt)}</b><div class="dim">${md(md0)}早上那天的前一晚・時間不對可以改</div></div><input type="time" id="sleepT" value="${hm(r.sleepAt)}" aria-label="修改入睡時間" style="width:110px;min-height:40px;background:var(--panel2);border:2px solid var(--line2);color:var(--text);font-size:15px"></div>`;
   if(!(h>=18||h<6))return '';
-  return `<button class="btn" id="sleepBtn" style="margin-top:12px">🌙 我要睡了（記錄 ${hm(now)}）</button>`;
+  const left=NT_TOOLS.length-(r?.night?.s?.length||0);
+  return `<button class="btn primary" data-go="night" style="margin-top:12px">🧰 去收拾釣具（還有 ${left} 件）</button><button class="btn" id="sleepBtn" style="margin-top:8px">🌙 沒收拾，直接睡了（記錄 ${hm(now)}）</button>`;
 }
 function saveSleep(ts){
   const md0=sleepDay(ts);let r=getDay(md0);if(!r)r=Object.assign(newDay(md0),{date:md0});
@@ -1116,7 +1195,7 @@ function showHomeHelp(){
 // 起床時間趨勢：最近 28 天
 // 睡眠時間軸：每天一條，從「我要睡了」畫到上鉤（起床）
 function sleepChartSVG(days){
-  let rows=days.map(day=>{const r=getDay(day),w=r?.hookAt||r?.wakeAt;return {day,s:r?.sleepAt,w}});
+  let rows=days.map(day=>{const r=getDay(day),w=r?.hookAt||r?.wakeAt;return {day,s:r?.sleepAt,w,n:r?.night?.doneAt}});
   if(!rows.some(x=>x.s))return '';
   rows=rows.slice(rows.findIndex(x=>x.s||x.w));
   const mm=t=>{const x=new Date(t);let m=x.getHours()*60+x.getMinutes();if(m<18*60)m+=1440;return m};
@@ -1127,12 +1206,13 @@ function sleepChartSVG(days){
   rows.forEach((r,i)=>{const y=i*RH+2;
     g+=`<text x="0" y="${y+11}" fill="#8E9BB0" font-size="9">${r.day.slice(5).replace('-','/')}</text>`;
     if(r.s&&r.w&&r.w>r.s){const a=X(mm(r.s)),b=X(mm(r.w));const dur=(r.w-r.s)/MIN;
+      if(r.n&&r.n<r.s){const c0=X(mm(r.n));g+=`<rect x="${c0}" y="${y+2}" width="${Math.max(1,a-c0)}" height="${RH-5}" fill="#8A7BB5" opacity=".45"/>`}
       g+=`<rect x="${a}" y="${y+2}" width="${Math.max(2,b-a)}" height="${RH-5}" fill="#4B3F72"/><rect x="${b-3}" y="${y+2}" width="3" height="${RH-5}" fill="#F2A65A"/>`;
       g+=`<text x="${Math.min(b+3,W-30)}" y="${y+11}" fill="#B9C4D6" font-size="9">${Math.floor(dur/60)}h${pad(Math.round(dur%60))}</text>`}
     else if(r.s){const a=X(mm(r.s));g+=`<rect x="${a}" y="${y+2}" width="3" height="${RH-5}" fill="#9B7FD0"/>`}
     else if(r.w){const b=X(mm(r.w));g+=`<rect x="${b-3}" y="${y+2}" width="3" height="${RH-5}" fill="#F2A65A"/>`}});
   return `<div class="card" style="margin-top:10px"><div class="dim" style="margin-bottom:6px">睡覺 → 起床（最近 14 天）</div><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="最近 14 天睡覺到起床的時間" shape-rendering="crispEdges">${g}</svg>
-  <div class="dim">紫色＝睡著的時間、橘色＝起床（上鉤）。只有起床沒有入睡的日子，是那晚沒按「我要睡了」。</div></div>`;
+  <div class="dim">紫色＝睡著的時間、橘色＝起床（上鉤）、淡紫＝收工後看書的 20 分鐘。只有起床沒有入睡的日子，是那晚沒收工也沒按「我要睡了」。</div></div>`;
 }
 function trendBlock(d){
   const days=[...Array(28)].map((_,i)=>ymd(addDays(parseYmd(d),i-27)));
@@ -1246,7 +1326,7 @@ function fishCardHTML(f,rec){
   const deco='<i class="bub" style="left:18%"></i><i class="bub" style="left:52%;animation-delay:1.2s"></i><i class="bub" style="left:80%;animation-delay:2.4s"></i>'+(stars>=3?'<i class="spk" style="left:12%;top:20%"></i><i class="spk" style="left:84%;top:26%;animation-delay:.6s"></i><i class="spk" style="left:20%;top:76%;animation-delay:.3s"></i><i class="spk" style="left:76%;top:70%;animation-delay:.9s"></i>':'');
   return `<div class="fcard" style="--gem:${GEM[stars]}"><div class="top"><div class="no">No.${String(no||0).padStart(3,'0')}</div><div class="stars">${'★'.repeat(stars)} ${STAR_WORD[stars]}${f.big?' · 週日大魚':''}</div></div>
   <div class="tank" data-fish='${JSON.stringify(f)}' data-cell="9">${deco}</div>
-  <div class="name">${fishName(f)}${f.legacy?'<span class="legacy">初代</span>':''}</div>
+  <div class="name">${fishName(f)}${f.legacy?'<span class="legacy">初代</span>':''}${f.gold?'<span class="gold">金竿</span>':''}</div>
   <div class="sci">${s.alias?s.name+' · ':''}<i>${s.sci}</i></div>
   <div class="desc">${fishDesc(f)}</div>
   <div class="attrs"><div>魚種<b>${s.name}</b></div><div>型態<b>${FORM_NAME[f.form||'a']}</b></div><div>棲地<b>${POOL_WORD(s)}</b></div><div>體長<b>${f.cm} cm</b></div></div>
@@ -1279,7 +1359,8 @@ function setupCarousel(root){
   });
 }
 function finalBlock(rec){
-  const head=rec.status==='caught'?(rec.fish.length>1?`釣起來了！雙餌 ×${rec.fish.length}`:'釣起來了！'):rec.status==='splash'?'準時起床，魚脫鉤了':'今天魚跑了';
+  const main=rec.fish.filter(f=>!f.gold).length,gb=rec.fish.length-main;
+  const head=rec.status==='caught'?(main>1?`釣起來了！雙餌 ×${main}`:'釣起來了！')+(gb?'＋金竿':''):rec.status==='splash'?'準時起床，魚脫鉤了':'今天魚跑了';
   const extra=rec.status==='miss'&&!rec.wakeAt?'<button class="btn" id="wakeBtn" style="margin-top:10px">記錄起床時間（現在）</button>':'';
   return `<h2 style="text-align:center;color:var(--accent);font-weight:700;font-size:15px">${head}</h2>${cardsHTML(rec)}${extra}
   <button class="btn primary" id="dayShare" style="margin-top:14px">分享到 IG 限動（摯友）</button>
@@ -1338,7 +1419,7 @@ function commitShot(rec,d,ch,step,sig){
   }
   rec.shots.push({ch,k:step.k,at:now,center:step.cup==='full'?sig.center:undefined});
   let caught=null;
-  if(chainShots(rec,ch).length>=CHAINS[ch].steps.length)caught=catchFish(rec,ch);
+  if(chainShots(rec,ch).length>=CHAINS[ch].steps.length){caught=catchFish(rec,ch);const b=catchNightBonus(rec);if(b)caught.bonus=b}
   settle(rec,now);putDay(d,rec);
   if(caught)return showCatch(caught,rec);
   const first=rec.shots.length===1;
@@ -1367,16 +1448,17 @@ async function cameraFlow({title,hint,round,deadline,tpl,onShot,register}){
     $('#manualOk')?.addEventListener('click',()=>{S.manualLog=[...(S.manualLog||[]),d];save();commit()});
   };
 }
-function showCatch({f,isNew},rec){
+function showCatch({f,isNew,bonus},rec,gold){
   closeCamera();playJingle();
   const all=rec.final;
-  showOv(`<div class="catch"><div class="big">釣起來了！</div><div class="fishbox" id="fishbox"></div>
+  showOv(`<div class="catch"><div class="big">${gold?'金竿加碼！':'釣起來了！'}</div>${gold?'<p class="sub">昨晚 01:00 前收工，多送一條圖鑑還沒有的魚</p>':''}<div class="fishbox" id="fishbox"></div>
   <div style="font-size:22px;font-weight:700">${fishName(f)}</div><div class="sci">${sp(f.sp).alias?sp(f.sp).name+' · ':''}<i>${sp(f.sp).sci}</i></div><div class="sub">${'★'.repeat(fishStars(f))} ${STAR_WORD[fishStars(f)]} · ${f.cm} cm${isNew?' · 圖鑑新登錄！':''}</div>
   ${!all?'<p class="sub">另一條線還在等你，別回床上喔</p>':''}
   <button class="btn primary" id="catchOk" style="margin-top:10px">${all?'看今天的魚卡':'繼續收線'}</button></div>`);
   const box=$('#fishbox');box.appendChild(fishCanvas(f,9));if(isNew){const st=document.createElement('div');st.className='stamp';st.textContent='NEW';box.appendChild(st)}
   for(let i=0;i<14;i++){const p=document.createElement('div');p.className='splashpx';p.style.left='50%';p.style.top='70%';p.style.setProperty('--dx',(Math.random()*240-120)+'px');p.style.setProperty('--dy',(-Math.random()*130)+'px');box.appendChild(p)}
-  $('#catchOk').onclick=hideOv;
+  $('#catchOk').onclick=bonus?()=>showCatch(bonus,rec,true):hideOv;
+  if(bonus)$('#catchOk').textContent='還有一條…';
 }
 
 // ───────── 分享圖（IG 限動 1080×1920）─────────
@@ -1414,7 +1496,7 @@ async function dayImage(rec){
   const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
   x.fillStyle='#0E1828';x.fillRect(0,0,1080,1920);skyBands(x);
   x.fillStyle='#F2A65A';x.font='36px "Press Start 2P"';x.fillText('晨釣',80,100);
-  x.fillStyle='#DCE9EE';x.font='40px "Noto Sans TC"';x.fillText(md(rec.date)+(rec.fish.length>1?'　雙餌 ×'+rec.fish.length:''),80,140);
+  x.fillStyle='#DCE9EE';x.font='40px "Noto Sans TC"';x.fillText(md(rec.date)+(rec.fish.filter(f=>!f.gold).length>1?'　雙餌 ×'+rec.fish.filter(f=>!f.gold).length:'')+(rec.fish.some(f=>f.gold)?'　＋金竿':''),80,140);
   const fish=rec.fish.length?rec.fish:[null];
   if(fish.length>1){drawFishCard(x,fish[0],290,680,250);drawFishCard(x,fish[1],1010,680,250)}
   else{drawFishCard(x,fish[0],300,1120,560);
@@ -1551,6 +1633,7 @@ function renderSet(){
   `<div class="card" style="margin-top:12px"><div class="sub">本週（${md(thisWk)} 起）</div><div class="px" style="font-size:22px;margin:6px 0">${weeklyTarget(d)}</div><div class="lock">本週已鎖定，不能在心軟的晚上改</div></div>
   <label class="f" style="margin-top:10px">下週目標（${md(nextWk)} 起生效）<input type="time" id="nextT" value="${nextVal}" step="300"></label>`}
   <p class="dim">建議每天同一時間；想提早，一次往前 10–15 分鐘。</p>
+  <h2>夜間收拾</h2><div class="dim" style="margin-bottom:6px">每件事配一個工具，名稱可以改成你自己的說法。</div><div style="display:flex;flex-direction:column;gap:6px">${NT_TOOLS.map(t=>`<label class="tplrow"><span class="t" style="flex:none;width:4.5em">${t.name}</span><input data-nt="${t.id}" value="${esc(ntTask(t))}" maxlength="10" style="flex:1;min-width:0;min-height:40px;background:var(--panel2);border:2px solid var(--line2);color:var(--text);font-size:15px;padding:4px 8px"></label>`).join('')}</div>
   <h2>釣點</h2><div style="display:flex;flex-direction:column;gap:8px">${spots.map(([id,s])=>`<button class="btn ${id===S.spot?'primary':''}" data-spot="${id}">${esc(s.name)}（${WATER_NAME[s.water||'stream']}）${id===S.spot?' · 使用中':''}</button>`).join('')}
   <div class="dim" style="margin-top:4px">「${esc(sp0.name)}」的水域：</div><div class="row">${['stream','sea','all'].map(w=>`<button class="btn ${(sp0.water||'stream')===w?'primary':''}" data-water="${w}">${WATER_NAME[w]}</button>`).join('')}</div>
   <button class="btn ghost" id="addSpot">＋新增釣點（例如飯店，前一晚登記）</button></div>
@@ -1566,6 +1649,7 @@ function renderSet(){
   <p class="dim">資料只存在這支手機的瀏覽器裡。換手機或清除 Safari 資料前記得匯出。${S.lastBackup?'上次備份：'+md(S.lastBackup):'還沒備份過'}</p>
   <p class="dim">版本 ${APP_VERSION}</p></div>`;
   const v=$('#viewSet');v.innerHTML=h;
+  v.querySelectorAll('[data-nt]').forEach(i=>i.onchange=()=>{S.nightTasks=S.nightTasks||{};const t=ntTool(i.dataset.nt),x=i.value.trim();if(!x||x===t.task)delete S.nightTasks[t.id];else S.nightTasks[t.id]=x;save();toast('改好了')});
   $('#nextT')?.addEventListener('change',e=>{S.targets[nextWk]=e.target.value;save();toast(`下週起改成 ${e.target.value}`)});
   $('#modeDaily').onclick=()=>{S.mode='daily';save();syncTodayTarget();renderSet()};
   $('#modeWeekly').onclick=()=>{S.mode='weekly';save();syncTodayTarget();renderSet()};
@@ -1650,10 +1734,132 @@ function onboarding(step=0){
 
 // ───────── 分頁、更新 ─────────
 function setPhase(){const h=new Date().getHours();document.body.dataset.phase=h>=5&&h<9?'dawn':h>=9&&h<16?'day':h>=16&&h<19?'dusk':'night'}
+// ───────── 夜間：收拾釣具 ─────────
+// 睡前的每件事配一個工具；做完就把工具拖進箱子，全部收好＝收工（入睡＝收工＋20 分鐘看書）。
+// 01:00 前收工＝金竿：隔天早上釣到魚時，再多送一條圖鑑還沒有的魚。資料存在「隔天早上」那天的紀錄 r.night。
+const NT_PAL={k:'#2f3640',p:'#d6557a',P:'#f2b7c2',m:'#b23a62',s:'#ee8c74',y:'#eec65b',Y:'#f7e39a',o:'#9db36a',O:'#6f8a44',g:'#a9b1b8',G:'#7c858e',w:'#f7f3ec',r:'#d9473f'};
+const NT_SPR={
+rod:['..k..','..g..','..g..','..g..','..g..','..g..','..s..','..s..','..s..','..s..','..s..','.kgk.','.kGk.','kmmmk','kpppk','kpppk','kpppk','kmmmk','.kkk.'],
+reel:['............','...kkkkk....','..kgggggk...','.kgGGGGGgk..','.kgGkkkGgk..','.kgGkwkGgkkk','.kgGkkkGgkpk','.kgGGGGGgkkk','..kgggggk...','...kkkkk....','....kk......','...kkkk.....'],
+lure:['...kkkkkkk....','..kpPPpppppk..','.kwkpPPpppppkk','.kkppPPppppppk','..kmmmmmmmmmk.','...kkkkkkkkk..','......k.k.....','......kkk.....'],
+float:['..kk..','..kk..','.kkkk.','kkkkkk','krrrrk','krwrrk','krrrrk','kkkkkk','kwwwwk','.kwwk.','..kk..','..kk..'],
+sinker:['..kk...','.k..k..','..kk...','.kggk..','kgwggk.','kgwgggk','kgggggk','kGggggk','.kGGgk.','..kkk..'],
+hook:['....kk','....kG','....kG','....kG','....kG','k...kG','Gk..kG','GGk.kG','.GGkGk','..GGG.'],
+lamp:['..kkkkkk..','.kooooook.','ko......ok','ko......ok','kOOOOOOOOk','k.kYYYYk.k','..kYYwYk..','..kYYYYk..','...kkkk...'],
+spool:['kkkkkkkkkk','.kwwwwwwk.','.kpwpwpwk.','.kwpwpwpk.','.kpwpwpwk.','.kwwwwwwk.','kkkkkkkkkk'],
+worm:['..ss......','.s..s.....','s....s..ss','......ss..'],
+ylure:['..kkkkkk....','.kyyyYYyk...','kwkyyYYyyk.k','kkyyyyyyykkk','.kOOOOOOk..k','..kkkkkk....'],
+spin:['.kkkkk......','kooOOook..kk','kwoooooookGk','.kkkkkkk..kk'],
+beetle:['..kk..','.kppk.','kpkkpk','kppppk','kpkkpk','kppppk','kpkkpk','.kppk.','..kk..'],
+bob:['.kk.','kppk','kpwk','kkkk','kwwk','kwwk','.kk.','.k..']};
+// col＝箱子裡哪一欄；band＝收之前散在箱子上方或下方；sc＝箱內大小；ls＝散落時大小
+const NT_TOOLS=[
+  {id:'rod',name:'釣竿',task:'洗澡',col:'C',sc:8,ls:4,band:'up',rot:-6},
+  {id:'lure',name:'假餌',task:'保養',col:'L',sc:5,ls:4,band:'up',rot:8},
+  {id:'reel',name:'捲線器',task:'按摩',col:'L',sc:5,ls:4,band:'up',rot:-4},
+  {id:'float',name:'浮標',task:'刷牙＋牙線',col:'R',sc:5,ls:4,band:'up',rot:10},
+  {id:'sinker',name:'鉛錘',task:'吃維他命',col:'L',sc:5,ls:4,band:'down',rot:-8},
+  {id:'hook',name:'魚鉤',task:'明天衣服＋背包',col:'R',sc:5,ls:5,band:'down',rot:6},
+  {id:'spool',name:'線軸',task:'桌面衣服歸位',col:'C',sc:5,ls:4,band:'down',rot:-10},
+  {id:'lamp',name:'頭燈',task:'手機放充電處',col:'R',sc:5,ls:4,band:'down',rot:-5}];
+const NT_COLS={L:['reel','lure','sinker'],C:['rod','spool'],R:['float','hook','lamp']};
+const NT_DECO=[['up',1,'worm',4,12],['down',0,'beetle',4,-18],['down',3,'ylure',4,10],['foot',0,'bob',4,20],['foot',1,'spin',3,-8],['foot',2,'worm',4,-20],['foot',3,'ylure',3,-6],['foot',4,'beetle',3,30]];
+const NT_TIERS=[['基本箱',0,'#2f3640'],['鐵箱',7,'#7c858e'],['黃銅箱',30,'#c9a24a'],['金箱',100,'#eec65b']];
+const NT_READ=20;
+const ntTool=id=>NT_TOOLS.find(t=>t.id===id);
+const ntTask=t=>S.nightTasks?.[t.id]||t.task;
+const ntGold=ts=>{const x=new Date(ts),h=x.getHours();return h>=12||h<1||(h===1&&x.getMinutes()===0)};
+const ntTierOf=n=>NT_TIERS.reduce((a,t,i)=>n>=t[1]?i:a,0);
+function ntSprite(id,scale,mode){const g=NT_SPR[id],w=g[0].length,h=g.length,c=document.createElement('canvas');c.width=w;c.height=h;
+  c.style.width=w*scale+'px';c.style.height=h*scale+'px';const x=c.getContext('2d');
+  g.forEach((row,yy)=>[...row].forEach((ch,xx)=>{if(ch==='.')return;x.fillStyle=mode==='hole'?'#d9d2c4':mode==='sil'?'rgba(47,54,64,.13)':NT_PAL[ch];x.fillRect(xx,yy,1,1)}));return c}
+function ntNights(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('day:')){const r=store.get(k);if(r?.night?.doneAt)out.push({d:k.slice(4),...r.night})}}return out.sort((a,b)=>a.d<b.d?1:-1)}
+let ntOpen=false,ntSel=null,ntDrag=null,ntAc=null;
+function ntTone(seq){if(S?.sound===false)return;try{ntAc=ntAc||new (window.AudioContext||window.webkitAudioContext)();if(ntAc.state==='suspended')ntAc.resume();let t=ntAc.currentTime;
+  seq.forEach(([f,d,v=.07])=>{const o=ntAc.createOscillator(),g=ntAc.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ntAc.destination);o.start(t);o.stop(t+d);t+=d*.8})}catch(e){}}
+const ntS={pick:()=>ntTone([[440,.04,.04]]),snap:()=>ntTone([[660,.06],[990,.09]]),nope:()=>ntTone([[170,.12,.05]]),open:()=>ntTone([[330,.08],[392,.08],[494,.12]]),lock:()=>ntTone([[523,.1],[659,.1],[784,.1],[1047,.3]]),up:()=>ntTone([[523,.12],[659,.12],[784,.12],[1047,.12],[1319,.4]])};
+function ntState(){const d=sleepDay(Date.now()),r=getDay(d);return {d,r,s:new Set(r?.night?.s||[]),done:r?.night?.doneAt||null,gold:!!r?.night?.gold}}
+function renderNight(anim){
+  const v=$('#viewNight'),{d,s,done,gold}=ntState(),nights=ntNights(),n=nights.length,cur=ntTierOf(n),nx=NT_TIERS[cur+1];
+  const open=ntOpen&&!done, closed=!!done;
+  const last=[...Array(7)].map((_,i)=>{const day=ymd(addDays(parseYmd(d),i-6));return nights.find(x=>x.d===day)?{day,...nights.find(x=>x.d===day)}:{day}});
+  v.innerHTML=`<div class="nt">
+  <div class="nthead"><div><b>收拾釣具</b><div class="ntplan">做完一件就把工具收進箱子・01:00 前收工＝明天金竿</div></div><div class="ntclock">${hm(Date.now())}</div></div>
+  <div class="ntband" id="ntup"></div>
+  <div class="ntstage ${open?'opened':''} ${closed?'closed':''} ${anim||''}" id="ntStage"><div class="ntbox" id="ntBox" style="background:${NT_TIERS[cur][2]}"><div class="ntcol L" id="ntL"></div><div class="ntcol C" id="ntC"></div><div class="ntcol R" id="ntR"></div></div>
+    ${!open&&!closed?'<div class="nthint">點箱子打開</div>':''}
+    ${closed?`<div class="ntdone"><b>收工 ${hm(done)} ✓</b><span>推估 ${hm(done+NT_READ*MIN)} 入睡・明天${gold?'金竿':'銀竿'}</span></div>`:''}</div>
+  <div class="ntband" id="ntdown"></div>
+  <div class="ntband foot" id="ntfoot" aria-hidden="true"></div>
+  <p class="nttip" id="ntTip">${closed?'收好了，手機放下，去看書吧。晚安。':open?`做完一件，就把工具拖進箱子。還剩 <b>${NT_TOOLS.length-s.size}</b> 件。`:'先點<b>工具箱</b>打開它。白天先做完的事，也可以先收進去。'}</p>
+  <details class="ntd"><summary><span class="k">工具箱</span><span class="v">${NT_TIERS[cur][0]}・收工 ${n} 晚${nx?`・再 ${nx[1]-n} 晚升${nx[0]}`:''}</span></summary>
+    <div class="ntin"><div class="nttiers">${NT_TIERS.map((t,i)=>`<div class="${i===cur?'now':''}"><i style="background:${t[2]}"></i><b>${t[0]}</b>${t[1]?t[1]+' 晚':'起點'}</div>`).join('')}</div><div class="ntbar"><i style="width:${nx?((n-NT_TIERS[cur][1])/(nx[1]-NT_TIERS[cur][1])*100):100}%"></i></div></div></details>
+  <details class="ntd"><summary><span class="k">最近 7 晚</span><span class="v"><span class="ntdots">${last.map(x=>`<i class="${!x.doneAt?'':x.gold?'g':'s'}"></i>`).join('')}</span></span></summary>
+    <div class="ntin">${[...last].reverse().map(x=>`<div class="ntrow"><span class="dd">${x.day.slice(5).replace('-','/')}</span>${x.doneAt?`<span>收工 ${hm(x.doneAt)}</span><span class="dd">入睡 ~${hm(x.doneAt+NT_READ*MIN)}</span><span class="rod ${x.gold?'g':'s'}">${x.gold?'金竿':'銀竿'}</span>`:'<span class="dd">沒收工</span><span></span><span></span>'}</div>`).join('')}
+    <p class="ntnote">金竿＝01:00 前收工，隔天早上釣到魚時多送一條圖鑑還沒有的魚；銀竿＝有收工但晚了。事項名稱可以在「設定」改。</p></div></details>
+  </div>`;
+  NT_TOOLS.forEach(t=>{const el=document.createElement('div'),got=s.has(t.id)||closed;
+    el.className='ntloose'+(got?' gone':'')+(ntSel===t.id?' sel':'');el.style.transform=`rotate(${t.rot}deg)`;
+    el.tabIndex=got?-1:0;el.setAttribute('role','button');el.setAttribute('aria-label',`${ntTask(t)}（${t.name}）`);
+    el.appendChild(ntSprite(t.id,t.ls));const tg=document.createElement('span');tg.className='tag';tg.textContent=ntTask(t);el.appendChild(tg);
+    if(!got){ntBind(el,t.id);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();ntOpen?ntStow(t.id):ntNudge()}})}
+    $('#nt'+t.band).appendChild(el)});
+  NT_DECO.forEach(([b,i,id,sc,r])=>{const el=document.createElement('div');el.className='ntdeco';el.setAttribute('aria-hidden','true');el.style.transform=`rotate(${r}deg)`;el.appendChild(ntSprite(id,sc));const box=$('#nt'+b);box.insertBefore(el,box.children[i]||null)});
+  for(const c of ['L','C','R']){const col=$('#nt'+c);
+    NT_COLS[c].forEach(id=>{const t=ntTool(id),got=s.has(id)||closed,cell=document.createElement('div');cell.className='ntcell'+(got?' full':'')+(id==='rod'?' tall':'');cell.dataset.id=id;
+      cell.appendChild(ntSprite(id,t.sc,got?null:(c==='R'?'hole':'sil')));cell.setAttribute('aria-label',t.name+(got?'（已收好）':'的位置'));
+      cell.addEventListener('click',e=>{e.stopPropagation();ntCellTap(id)});col.appendChild(cell)});
+    if(c==='C'){const l=document.createElement('div');l.className='ntlid';l.innerHTML='<i></i>';col.appendChild(l)}}
+  $('#ntBox').onclick=()=>{if(!closed&&!ntOpen){ntOpen=true;ntS.open();renderNight()}};
+}
+function ntBind(el,id){
+  const start=(x,y)=>{if(!ntOpen){ntNudge();return}ntDrag={id,x0:x,y0:y,moved:false,g:null,hot:null,el}};
+  el.addEventListener('touchstart',e=>{const t=e.changedTouches[0];start(t.clientX,t.clientY);if(ntDrag)e.preventDefault()},{passive:false});
+  el.addEventListener('mousedown',e=>start(e.clientX,e.clientY));
+}
+function ntMove(x,y){const D=ntDrag;if(!D)return;
+  if(!D.moved&&Math.hypot(x-D.x0,y-D.y0)>6){D.moved=true;ntS.pick();ntSel=null;const g=document.createElement('div');g.className='ntghost';g.appendChild(ntSprite(D.id,ntTool(D.id).sc));document.body.appendChild(g);D.g=g;D.el.classList.add('lift')}
+  if(!D.moved)return;D.g.style.left=x+'px';D.g.style.top=y+'px';
+  const el=document.elementFromPoint(x,y),c=el&&el.closest('.ntcell');if(D.hot&&D.hot!==c)D.hot.classList.remove('hot');
+  if(c&&c.dataset.id===D.id){c.classList.add('hot');D.hot=c}else D.hot=null}
+function ntEnd(x,y){const D=ntDrag;if(!D)return;ntDrag=null;
+  if(!D.moved){ntSel=ntSel===D.id?null:D.id;ntS.pick();renderNight();if(ntSel)$('#ntTip').innerHTML=`再點箱子裡<b>${ntTool(ntSel).name}</b>的位置。`;return}
+  D.g.remove();const el=document.elementFromPoint(x,y),c=el&&el.closest('.ntcell');
+  if(c&&c.dataset.id===D.id)ntStow(D.id);else{if(c){ntS.nope();c.classList.add('nope')}renderNight()}}
+document.addEventListener('touchmove',e=>{if(!ntDrag)return;e.preventDefault();const t=e.changedTouches[0];ntMove(t.clientX,t.clientY)},{passive:false});
+document.addEventListener('touchend',e=>{if(!ntDrag)return;const t=e.changedTouches[0];ntEnd(t.clientX,t.clientY)});
+document.addEventListener('touchcancel',()=>{if(ntDrag?.g)ntDrag.g.remove();ntDrag=null;renderNight()});
+document.addEventListener('mousemove',e=>{if(ntDrag)ntMove(e.clientX,e.clientY)});
+document.addEventListener('mouseup',e=>{if(ntDrag)ntEnd(e.clientX,e.clientY)});
+function ntNudge(){$('#ntTip').innerHTML='先點中間的<b>工具箱</b>打開它。';const b=$('#ntBox');b.classList.add('nope');setTimeout(()=>b.classList.remove('nope'),320)}
+function ntCellTap(id){const st=ntState();if(st.done)return;if(!ntOpen){ntOpen=true;ntS.open();renderNight();return}
+  if(st.s.has(id)){const r=st.r;r.night.s=r.night.s.filter(x=>x!==id);putDay(st.d,r);renderNight();return}
+  if(!ntSel)return;if(ntSel===id)ntStow(id);else{ntS.nope();document.querySelector(`.ntcell[data-id="${id}"]`)?.classList.add('nope')}}
+function ntStow(id){const {d}=ntState();let r=getDay(d);if(!r)r=Object.assign(newDay(d),{date:d});
+  r.night=r.night||{s:[]};if(r.night.doneAt||r.night.s.includes(id))return;r.night.s.push(id);putDay(d,r);ntSel=null;ntS.snap();try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}
+  renderNight();document.querySelector(`.ntcell[data-id="${id}"]`)?.classList.add('snap');
+  if(r.night.s.length>=NT_TOOLS.length)setTimeout(ntClose,550)}
+function ntClose(){const {d,r}=ntState();if(!r?.night||r.night.doneAt)return;const before=ntTierOf(ntNights().length),now=Date.now();
+  r.night.doneAt=now;r.night.gold=ntGold(now);r.sleepAt=now+NT_READ*MIN;putDay(d,r);ntOpen=false;
+  renderNight('anim');setTimeout(ntS.lock,450);
+  const t=ntTierOf(ntNights().length);if(t>before)setTimeout(()=>{ntS.up();toast(`升級！${NT_TIERS[t][0]}（收工滿 ${NT_TIERS[t][1]} 晚）`,4000)},1200)}
+// 金竿加碼：從圖鑑還沒有的魚（這個釣點、這個月釣得到的）抽一條
+function catchNightBonus(rec){
+  if(!rec.night?.gold||rec.nightBonus)return null;
+  const month=parseYmd(rec.date).getMonth()+1,water=(S.spots[rec.spot]||S.spots.home).water||'stream',dex=store.get('dex')||{},opts=[];
+  SPECIES.forEach(s=>{if(!(water==='all'||s.pool.includes(water))||(s.months&&!s.months.includes(month)))return;
+    formsOf(s).forEach(fm=>{if(fm==='b'&&s.breed?.months&&!s.breed.months.includes(month))return;if(!dex[`${s.id}|${fm}`])opts.push([s,fm])})});
+  rec.nightBonus=true;if(!opts.length)return null;
+  const r=rng(rec.date+'night'),[s,form]=opts[Math.floor(r()*opts.length)],[lo,hi]=s.len;
+  const cm=form==='j'?Math.max(1,Math.min(s.juv-1,Math.round(lo+(s.juv-lo)*r()))):Math.max(s.juv,Math.round(lo+(hi-lo)*r()));
+  const f={sp:s.id,form,cm,ch:'night',big:false,gold:true,at:Date.now()};rec.fish.push(f);
+  const k=fishKey(f);dex[k]={n:1,first:rec.date};store.set('dex',dex);
+  return {f,isNew:true};
+}
 function showTab(t){setPhase();
-  ['Today','Dex','Set'].forEach(x=>{$('#view'+x).hidden=x!==t});
+  ['Today','Night','Dex','Set'].forEach(x=>{$('#view'+x).hidden=x!==t});
   document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
-  if(t==='Today')renderToday();if(t==='Dex')renderDex();if(t==='Set')renderSet();
+  if(t==='Today')renderToday();if(t==='Night'){ntOpen=false;ntSel=null;renderNight()}if(t==='Dex')renderDex();if(t==='Set')renderSet();
   window.scrollTo(0,0);
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
