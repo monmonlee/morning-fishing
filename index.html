@@ -412,7 +412,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.11.03-0023';
+const APP_VERSION='2026.11.10-0350';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -1649,7 +1649,6 @@ function renderSet(){
   <p class="dim">資料只存在這支手機的瀏覽器裡。換手機或清除 Safari 資料前記得匯出。${S.lastBackup?'上次備份：'+md(S.lastBackup):'還沒備份過'}</p>
   <p class="dim">版本 ${APP_VERSION}</p></div>`;
   const v=$('#viewSet');v.innerHTML=h;
-  v.querySelectorAll('[data-nt]').forEach(i=>i.onchange=()=>{S.nightTasks=S.nightTasks||{};const t=ntTool(i.dataset.nt),x=i.value.trim();if(!x||x===t.task)delete S.nightTasks[t.id];else S.nightTasks[t.id]=x;save();toast('改好了')});
   $('#nextT')?.addEventListener('change',e=>{S.targets[nextWk]=e.target.value;save();toast(`下週起改成 ${e.target.value}`)});
   $('#modeDaily').onclick=()=>{S.mode='daily';save();syncTodayTarget();renderSet()};
   $('#modeWeekly').onclick=()=>{S.mode='weekly';save();syncTodayTarget();renderSet()};
@@ -1831,6 +1830,8 @@ document.addEventListener('touchend',e=>{if(!ntDrag)return;const t=e.changedTouc
 document.addEventListener('touchcancel',()=>{if(ntDrag?.g)ntDrag.g.remove();ntDrag=null;renderNight()});
 document.addEventListener('mousemove',e=>{if(ntDrag)ntMove(e.clientX,e.clientY)});
 document.addEventListener('mouseup',e=>{if(ntDrag)ntEnd(e.clientX,e.clientY)});
+// 設定頁改事項名稱（用事件委派，不動 renderSet 本體）
+document.addEventListener('change',e=>{const i=e.target;if(!i.matches?.('[data-nt]'))return;S.nightTasks=S.nightTasks||{};const t=ntTool(i.dataset.nt),x=i.value.trim();if(!x||x===t.task)delete S.nightTasks[t.id];else S.nightTasks[t.id]=x;save();toast('改好了')});
 function ntNudge(){$('#ntTip').innerHTML='先點中間的<b>工具箱</b>打開它。';const b=$('#ntBox');b.classList.add('nope');setTimeout(()=>b.classList.remove('nope'),320)}
 function ntCellTap(id){const st=ntState();if(st.done)return;if(!ntOpen){ntOpen=true;ntS.open();renderNight();return}
   if(st.s.has(id)){const r=st.r;r.night.s=r.night.s.filter(x=>x!==id);putDay(st.d,r);renderNight();return}
