@@ -97,6 +97,8 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:22px 0 10px}
 .week .c{width:100%;aspect-ratio:1;background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .week .c.hit{background:var(--water);border-color:var(--water2)}
 .week .c.splash{background:var(--panel2);border-color:var(--water2)}
+.week .c.late{background:var(--panel2);border-color:var(--ok)}
+.week .c.late i{background:var(--ok);width:30%;height:30%}
 .week .c.today{outline:2px solid var(--accent);outline-offset:1px}
 .week .c canvas{width:90%;height:auto;image-rendering:pixelated}
 .week .c i{width:40%;height:28%;background:#DCE9EE;display:block}
@@ -412,7 +414,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.11.10-0350';
+const APP_VERSION='2026.11.13-0947';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -1123,6 +1125,7 @@ function renderToday(){
   v.querySelectorAll('[data-fish]').forEach(el=>{const f=JSON.parse(el.dataset.fish);el.appendChild(fishCanvas(f,+el.dataset.cell||6))});
   v.querySelectorAll('[data-bait]').forEach(b=>b.onclick=()=>toggleBait(b.dataset.bait,b.dataset.for));
   v.querySelectorAll('[data-shoot]').forEach(b=>b.onclick=()=>shoot(b.dataset.shoot));
+  v.querySelectorAll('[data-late]').forEach(b=>b.onclick=()=>lateShoot(b.dataset.late));
   v.querySelector('#badBtn')?.addEventListener('click',useBad);
   v.querySelector('#badUndo')?.addEventListener('click',undoBad);
   v.querySelector('#wakeBtn')?.addEventListener('click',()=>{const {d,rec}=loadToday(Date.now());const r=rec||Object.assign(newDay(d),{date:d,final:true,status:'miss'});r.wakeAt=Date.now();putDay(d,r);toast('記下來了：'+hm(r.wakeAt)+' 起床');renderToday()});
@@ -1333,7 +1336,11 @@ function fishCardHTML(f,rec){
   <div class="foot"><div style="font-size:12px;color:#3A4A5E">${md(rec.date)}起床</div><div class="px">${hm(rec.hookAt)}</div></div></div>`;
 }
 function emptyCardHTML(rec,kind){
-  const t=rec.hookAt||rec.wakeAt;
+  const t=rec.hookAt||rec.wakeAt, L=kind==='miss'&&rec.late?.doneAt?rec.late:null;
+  if(L)return `<div class="fcard miss"><div class="top"><div class="no">No.---</div><div class="dim" style="color:#3A4A5E">晚起有做完</div></div>
+  <div class="tank"><div class="ripple" style="width:60px;height:14px"></div><div class="ripple" style="width:110px;height:26px;opacity:.35"></div></div>
+  <div class="name">晚起，路線走完了</div><div class="desc">${lateDesc(L)}</div>
+  <div class="foot"><div style="font-size:12px;color:#3A4A5E">${md(rec.date)}起床</div><div class="px">${t?hm(t):'—'}</div></div></div>`;
   const title=kind==='splash'?'脫鉤的水花':'只剩一圈漣漪';
   const desc=kind==='splash'?'準時起床了！只是收線的時候魚跑掉了。起床這件事，今天已經做到。':`浮標沉下去的時候你還在棉被裡。魚不會記仇，明天 ${targetFor(ymd(addDays(parseYmd(rec.date),1)))} 牠還會來。`;
   return `<div class="fcard miss"><div class="top"><div class="no">No.---</div><div class="dim" style="color:#3A4A5E">${kind==='splash'?'準時起床':'空水面'}</div></div>
@@ -1360,11 +1367,54 @@ function setupCarousel(root){
 }
 function finalBlock(rec){
   const main=rec.fish.filter(f=>!f.gold).length,gb=rec.fish.length-main;
-  const head=rec.status==='caught'?(main>1?`釣起來了！雙餌 ×${main}`:'釣起來了！')+(gb?'＋金竿':''):rec.status==='splash'?'準時起床，魚脫鉤了':'今天魚跑了';
-  const extra=rec.status==='miss'&&!rec.wakeAt?'<button class="btn" id="wakeBtn" style="margin-top:10px">記錄起床時間（現在）</button>':'';
-  return `<h2 style="text-align:center;color:var(--accent);font-weight:700;font-size:15px">${head}</h2>${cardsHTML(rec)}${extra}
+  const head=rec.status==='caught'?(main>1?`釣起來了！雙餌 ×${main}`:'釣起來了！')+(gb?'＋金竿':''):rec.status==='splash'?'準時起床，魚脫鉤了':rec.late?.doneAt?'魚跑了，但你做完了':'今天魚跑了';
+  const extra=rec.status==='miss'&&!rec.fish.length?lateBlock(rec):'';
+  const wake=rec.status==='miss'&&!rec.wakeAt&&!rec.late?'<button class="btn" id="wakeBtn" style="margin-top:10px">記錄起床時間（現在）</button>':'';
+  return `<h2 style="text-align:center;color:var(--accent);font-weight:700;font-size:15px">${head}</h2>${cardsHTML(rec)}${extra}${wake}
   <button class="btn primary" id="dayShare" style="margin-top:14px">分享到 IG 限動（摯友）</button>
   ${rec.status!=='caught'?'<p class="dim" style="text-align:center">空水面也發：週日的週漁獲卡會留下這一格。唯一的規則是不要連續兩天。</p>':''}`;
+}
+// 晚起路線：魚跑了也能照路線拍完，記起床時間和完成幾步（不釣魚、不算準時）
+function lateUsable(rec){const ok=c=>c!=='shower'||hasShowerTpl();const mine=(rec.bait||[]).filter(ok);return [...mine,...Object.keys(CHAINS).filter(c=>ok(c)&&!mine.includes(c))]}
+function lateDesc(L){const names=L.bait.map(c=>CHAINS[c].name).join('、');return `魚跑了，但起床後該做的事都做完了：${names}，${hm(L.start)}–${hm(L.doneAt)}。起床這件事，今天一樣做到了。`}
+function lateBlock(rec){
+  const L=rec.late;
+  if(!L){const opts=lateUsable(rec);
+    return `<div class="card" style="margin-top:14px"><b>魚跑了，事情還是可以做</b><p class="dim" style="margin:6px 0 10px">照路線拍完，會記下起床時間和完成幾步。不會釣到魚，做完蓋一個「晚起但有做完」。</p>
+    <div style="display:flex;flex-direction:column;gap:10px">${opts.map((ch,i)=>`<button class="btn ${i?'':'primary'}" data-late="${ch}">拍${CHAINS[ch].steps[0].label}（${CHAINS[ch].name}）</button>`).join('')}</div></div>`}
+  let total=0,done=0;
+  const chains=L.bait.map(ch=>{
+    const def=CHAINS[ch], shots=L.shots.filter(s=>s.ch===ch);total+=def.steps.length;done+=shots.length;
+    const rows=def.steps.map((s,i)=>{const shot=shots[i];
+      const rule=i===0?'第一張':s.after[0]?`上一張後至少 ${s.after[0]} 分鐘`:'接著拍';
+      return `<div class="step ${shot?'done':i===shots.length?'now':''}"><div class="no">${i+1}</div><div class="t"><b>${s.label}</b><span>${rule}</span></div><div class="tm">${shot?hm(shot.at):'--:--'}</div></div>`}).join('');
+    const btn=shots.length<def.steps.length?`<button class="btn primary" data-late="${ch}" style="margin-top:8px">拍${def.steps[shots.length].label}</button>`:'';
+    return `<h2>${def.name}線 ${shots.length>=def.steps.length?'<span style="color:var(--ok)">做完了</span>':''}</h2><div class="steps">${rows}</div>${btn}`}).join('');
+  const more=L.doneAt?'':lateUsable(rec).filter(c=>!L.bait.includes(c)).map(ch=>`<button class="btn ghost" data-late="${ch}">再加一條：${CHAINS[ch].name}</button>`).join('');
+  return `<div style="margin-top:18px"><div style="display:flex;justify-content:space-between" class="dim"><span>晚起路線</span><span>${done}/${total} 步${L.doneAt?' · 做完了':''}</span></div><div class="tension"><div style="width:${Math.round(done/total*100)}%"></div></div></div>
+  ${chains}${more?`<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">${more}</div>`:''}`;
+}
+async function lateShoot(ch){
+  const {d,rec}=loadToday(Date.now());
+  if(!rec||rec.status!=='miss'||rec.fish.length)return renderToday();
+  const L=rec.late||{bait:[],shots:[]}, done=L.shots.filter(s=>s.ch===ch), step=CHAINS[ch].steps[done.length];
+  if(!step)return;
+  if(step.tpl&&!spotObj().tpl?.[step.k])return toast('先到「設定」登記這個釣點的「'+step.label.replace('洗完澡的','')+'」範本');
+  if(done.length&&step.after[0]){const e=done[done.length-1].at+step.after[0]*MIN;if(Date.now()<e)return toast(step.wet?`才剛開始洗，${Math.ceil((e-Date.now())/MIN)} 分鐘後再拍地板`:`再等 ${Math.ceil((e-Date.now())/MIN)} 分鐘`)}
+  await cameraFlow({title:'晚起路線：'+step.label,hint:step.hint,round:!!step.cup,deadline:null,tpl:step.tpl?spotObj().tpl[step.k]:step.opt?spotObj().tpl?.[step.opt]:null,
+    onShot:sig=>({res:check(step,sig,{spot:rec.spot,shots:L.shots},ch),commit:()=>commitLate(d,ch,step,sig)})});
+}
+function commitLate(d,ch,step,sig){
+  const now=Date.now(), rec=getDay(d);if(!rec)return hideOv();
+  const L=rec.late||(rec.late={bait:[],shots:[],start:now});
+  if(!L.bait.includes(ch))L.bait.push(ch);
+  L.shots.push({ch,k:step.k,at:now,center:step.cup==='full'?sig.center:undefined});
+  if(!rec.wakeAt)rec.wakeAt=now;
+  const first=L.shots.length===1;
+  if(!L.doneAt&&L.bait.every(c=>L.shots.filter(s=>s.ch===c).length>=CHAINS[c].steps.length))L.doneAt=now;
+  putDay(d,rec);hideOv();
+  if(L.doneAt===now){sfx('hook');toast('做完了！晚起但有做完',3200)}
+  else{sfx('click');toast(first?'開始了，起床時間記成 '+hm(rec.wakeAt):'記下來了，繼續')}
 }
 function missedBlock(d,target){
   const rec=Object.assign(newDay(d),{date:d,final:true,status:'miss'});
@@ -1382,6 +1432,7 @@ function weekBlock(d){
     if(r?.hookAt)hits++;
     if(r?.fish?.length){cls='hit';inner=`<span data-fish='${JSON.stringify(r.fish[0])}' data-cell="2"></span>`}
     else if(r?.status==='splash'){cls='splash';inner='<i></i>'}
+    else if(r?.late?.doneAt){cls='late';inner='<i></i>'}
     return `<div class="d"><div class="c ${cls} ${day===d?'today':''} ${i===6?'sun':''}">${inner}</div><div class="n">${'一二三四五六日'[i]}</div></div>`;
   }).join('');
   return `<h2 style="display:flex;justify-content:space-between"><span>本週漁獲 ${hits}/7</span><span class="dim">一到六準時 4 天＝週日大魚</span></h2><div class="week">${cells}</div>
@@ -1414,7 +1465,10 @@ function commitShot(rec,d,ch,step,sig){
   const now=Date.now();
   if(!rec.hookAt){
     const T=atTime(d,rec.target);
-    if(now>T+HOOK_LATE*MIN){rec.final=true;rec.status='miss';rec.wakeAt=now;putDay(d,rec);hideOv();toast('差一點！魚剛剛跑了，起床時間記下來了');return}
+    if(now>T+HOOK_LATE*MIN){rec.final=true;rec.status='miss';rec.wakeAt=now;
+      rec.late={bait:[ch],shots:[{ch,k:step.k,at:now,center:step.cup==='full'?sig.center:undefined}],start:now};
+      if(CHAINS[ch].steps.length<=1)rec.late.doneAt=now;
+      putDay(d,rec);hideOv();toast('差一點！魚跑了。這張先算晚起路線第一步，繼續拍完吧');return}
     rec.hookAt=now;rec.hookCh=ch;
   }
   rec.shots.push({ch,k:step.k,at:now,center:step.cup==='full'?sig.center:undefined});
@@ -1500,12 +1554,12 @@ async function dayImage(rec){
   const fish=rec.fish.length?rec.fish:[null];
   if(fish.length>1){drawFishCard(x,fish[0],290,680,250);drawFishCard(x,fish[1],1010,680,250)}
   else{drawFishCard(x,fish[0],300,1120,560);
-    if(!fish[0]){const ty=300+40+560+70;x.fillStyle='#14223A';x.font='700 58px "Noto Sans TC"';x.fillText(rec.status==='splash'?'脫鉤的水花':'只剩一圈漣漪',120,ty);
-      x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';wrapText(x,rec.status==='splash'?'準時起床了！只是收線的時候魚跑掉了。起床這件事，今天已經做到。':'浮標沉下去的時候還在棉被裡。魚不會記仇，明天牠還會來。',120,ty+70,840,46)}}
+    if(!fish[0]){const ty=300+40+560+70,lt=rec.status!=='splash'&&rec.late?.doneAt;x.fillStyle='#14223A';x.font='700 58px "Noto Sans TC"';x.fillText(rec.status==='splash'?'脫鉤的水花':lt?'晚起，路線走完了':'只剩一圈漣漪',120,ty);
+      x.fillStyle='#3A4A5E';x.font='32px "Noto Sans TC"';wrapText(x,rec.status==='splash'?'準時起床了！只是收線的時候魚跑掉了。起床這件事，今天已經做到。':lt?lateDesc(rec.late):'浮標沉下去的時候還在棉被裡。魚不會記仇，明天牠還會來。',120,ty+70,840,46)}}
   const t=rec.hookAt||rec.wakeAt;
   x.fillStyle='#B9C4D6';x.font='36px "Noto Sans TC"';x.fillText('起床時間',80,1800);
   x.fillStyle=rec.hookAt?'#F4F1EA':'#B9C4D6';x.font='64px "Press Start 2P"';x.fillText(t?hm(t):'--:--',80,1880);
-  x.fillStyle='#4A6690';x.font='28px "Noto Sans TC"';x.textAlign='right';x.fillText(rec.hookAt?'準時上鉤':'今天魚跑了',1000,1870);x.textAlign='left';
+  x.fillStyle='#4A6690';x.font='28px "Noto Sans TC"';x.textAlign='right';x.fillText(rec.hookAt?'準時上鉤':rec.late?.doneAt?'晚起但有做完':'今天魚跑了',1000,1870);x.textAlign='left';
   return c;
 }
 async function weekImage(d){
@@ -1709,7 +1763,7 @@ function onboarding(step=0){
   const steps=[
    ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div class="logo" style="font-size:18px">晨釣</div>
     <div style="font-size:22px;font-weight:700;line-height:1.5">每天在固定時間起床，<br>就能釣到一條魚。</div>
-    <div class="card" style="line-height:1.8;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤<br>② 照順序拍完路線（洗澡、咖啡、水）＝把魚釣起來<br>③ 越早上鉤，魚越稀有；兩條路線都完成，多一條魚<br>④ 沒起來也不扣分，只是今天的魚跑了</div>
+    <div class="card" style="line-height:1.8;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤<br>② 照順序拍完路線（洗澡、咖啡、水）＝把魚釣起來<br>③ 越早上鉤，魚越稀有；兩條路線都完成，多一條魚<br>④ 沒起來也不扣分，只是今天的魚跑了；還是可以照路線拍完，蓋「晚起但有做完」</div>
     <button class="btn primary" id="obNext">開始設定</button></div>`,
    ()=>`<div class="catch" style="text-align:left;align-items:stretch"><div style="font-size:20px;font-weight:700">平常幾點起床？</div>
     <label class="f">本週目標<input type="time" id="obT" value="08:30" step="300"></label>
@@ -1866,7 +1920,7 @@ function showTab(t){setPhase();
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $('#spotChip').onclick=()=>showTab('Set');
 $('#helpBtn').onclick=()=>{showOv(`<div class="ovhead"><b>玩法</b><button class="x" id="hpX" aria-label="關閉">×</button></div>
-  <div class="card" style="line-height:1.9;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤（這就是你的起床時間）<br>② 照順序拍完路線＝把魚釣起來；每一步有時限，超時魚會脫鉤<br>③ 越早上鉤魚越稀有；兩條路線都完成（雙餌）多一條魚<br>④ 沒起來不扣分，今天的魚跑了而已；不要連續兩天就好</div>
+  <div class="card" style="line-height:1.9;font-size:14px">① 鬧鐘響後 <b>3 分鐘內</b>拍下第一張照片＝魚上鉤（這就是你的起床時間）<br>② 照順序拍完路線＝把魚釣起來；每一步有時限，超時魚會脫鉤<br>③ 越早上鉤魚越稀有；兩條路線都完成（雙餌）多一條魚<br>④ 沒起來不扣分，今天的魚跑了而已；還是可以照路線拍完，蓋「晚起但有做完」（不給魚）。不要連續兩天就好</div>
   <h2>名詞</h2><div class="card" style="line-height:1.9;font-size:14px"><b>魚餌</b>＝早上要拍的路線（洗澡／咖啡／水）<br><b>釣點</b>＝你在哪裡（家、飯店），決定用哪組範本和魚種<br><b>範本</b>＝先拍一次的參考照，之後拿來比對<br><b>壞夜卡</b>＝睡不好時用，一樣要準時起，但收線時限放寬<br><b>手動算過</b>＝明明拍對卻不過時用，一週 2 次</div>
   <h2>路線</h2><div class="card" style="line-height:1.9;font-size:14px">${Object.values(CHAINS).map(c=>`<b>${c.name}</b>：${c.steps.map(x=>x.label).join(' → ')}`).join('<br>')}</div>`);$('#hpX').onclick=hideOv};
 let latest=null;
