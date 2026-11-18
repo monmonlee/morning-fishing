@@ -414,7 +414,7 @@ body.paused *,body.paused::after{animation-play-state:paused!important}
 
 <script>
 /* bumped by scripts/release.sh; must match version.json on release */
-const APP_VERSION='2026.11.19-0235';
+const APP_VERSION='2026.11.19-0434';
 
 // ───────── 小工具 ─────────
 const $=s=>document.querySelector(s);
@@ -1933,8 +1933,8 @@ $('#updateBtn').onclick=()=>{location.href=location.pathname+'?v='+(latest||Date
 document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.visibilityState==='visible'){setPhase();checkUpdate();if(!$('#viewToday').hidden&&$('#ov').hidden)renderToday();else playBgm(wantBgm)}else{closeCamera();stopBgm()}});
 
 try{migrateFish()}catch(e){console.error(e)}
-// 11/19：起床時間一次改成每天 9:30（切到「每天自己設」；今天還沒上鉤就連今天一起改）
-try{if(S&&!S.wake930V){S.mode='daily';S.days={};for(let w=0;w<7;w++)S.days[w]='09:30';S.wake930V=1;save();const d=ymd(new Date()),r=getDay(d);if(r&&!r.hookAt&&!r.final){r.target='09:30';putDay(d,r)}}}catch(e){console.error(e)}
+// 11/19：起床時間一次改成每天 10:30（切到「每天自己設」；今天還沒上鉤就連今天一起改）
+try{if(S&&!S.wake1030V){S.mode='daily';S.days={};for(let w=0;w<7;w++)S.days[w]='10:30';S.wake930V=S.wake1030V=1;save();const d=ymd(new Date()),r=getDay(d);if(r&&!r.hookAt&&!r.final){r.target='10:30';putDay(d,r)}}}catch(e){console.error(e)}
 // 11/02：家裡的釣點改成溪流＋海邊都釣得到（真魚圖鑑上線時）
 try{if(S&&S.spots?.home&&!S.homeAllV){if((S.spots.home.water||'stream')==='stream')S.spots.home.water='all';S.homeAllV=1;save()}}catch(e){}
 if(!S){S={mode:'daily',targets:{},bait:['shower','coffee'],spot:'home',spots:{home:{name:'家',water:'all',tpl:{}}},sound:true,created:ymd(new Date())};S.targets[weekKey(new Date())]='08:30';save();showTab('Today');onboarding()}
